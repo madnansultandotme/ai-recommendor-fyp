@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Recommender System - Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f8f9fa;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        
+        .form-group select,
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .btn:hover {
+            background: #5a6fd8;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+        }
+        
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+        
+        .btn-success {
+            background: #28a745;
+        }
+        
+        .btn-success:hover {
+            background: #218838;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+        }
+        
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .recommendation {
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            background: #f8f9fa;
+        }
+        
+        .recommendation h4 {
+            color: #495057;
+            margin-bottom: 10px;
+        }
+        
+        .recommendation .score {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+        
+        .recommendation .reasons {
+            font-size: 13px;
+            color: #6c757d;
+        }
+        
+        .recommendation .reasons li {
+            margin-bottom: 3px;
+        }
+        
+        .status {
+            padding: 10px 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            font-weight: 500;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #b6d4d9;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #e9ecef;
+            margin-bottom: 20px;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .tab.active {
+            border-bottom-color: #667eea;
+            color: #667eea;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .metric {
+            text-align: center;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .metric .value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #495057;
+        }
+        
+        .metric .label {
+            font-size: 12px;
+            color: #6c757d;
+            text-transform: uppercase;
+        }
+        
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #e9ecef;
+            font-size: 13px;
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .actions {
+            margin-top: 15px;
+        }
+        
+        .feedback-buttons {
+            display: flex;
+            gap: 5px;
+            margin-top: 10px;
+        }
+        
+        .feedback-buttons .btn {
+            padding: 6px 12px;
+            font-size: 12px;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 AI Recommender System</h1>
+            <p>Three-Tier Hybrid Recommendation Engine</p>
+            <p><strong>Tier 1:</strong> Content-Based | <strong>Tier 2:</strong> Collaborative Filtering | <strong>Tier 3:</strong> Two-Tower Neural Network</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('recommendations')">Get Recommendations</button>
+            <button class="tab" onclick="switchTab('training')">Model Training</button>
+            <button class="tab" onclick="switchTab('analytics')">Analytics</button>
+            <button class="tab" onclick="switchTab('experiments')">A/B Testing</button>
+            <button class="tab" onclick="switchTab('system')">System Status</button>
+        </div>
+
+        <!-- Recommendations Tab -->
+        <div id="recommendations" class="tab-content active">
+            <div class="card">
+                <h3>Get Personalized Recommendations</h3>
+                
+                <div class="form-group">
+                    <label for="userId">User ID (1-80):</label>
+                    <input type="number" id="userId" min="1" max="80" value="1">
+                </div>
+                
+                <div class="form-group">
+                    <label for="userType">User Type:</label>
+                    <select id="userType">
+                        <option value="developer">Developer</option>
+                        <option value="founder">Founder</option>
+                        <option value="investor">Investor</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="limit">Number of Recommendations:</label>
+                    <input type="number" id="limit" min="1" max="20" value="5">
+                </div>
+                
+                <button class="btn" onclick="getRecommendations()">Get Recommendations</button>
+                <button class="btn btn-secondary" onclick="getRandomUser()">Random User</button>
+            </div>
+
+            <div id="recommendationsResult"></div>
+        </div>
+
+        <!-- Training Tab -->
+        <div id="training" class="tab-content">
+            <div class="card">
+                <h3>Model Training & Management</h3>
+                
+                <div class="actions">
+                    <button class="btn" onclick="trainModels()">Train All Models</button>
+                    <button class="btn btn-secondary" onclick="loadModels()">Load Models</button>
+                    <button class="btn btn-success" onclick="getAlgorithmStatus()">Algorithm Status</button>
+                </div>
+                
+                <div class="card">
+                    <h4>Update Algorithm Weights</h4>
+                    <div class="form-group">
+                        <label for="contentWeight">Content-Based Weight:</label>
+                        <input type="number" id="contentWeight" step="0.1" min="0" max="1" value="0.4">
+                    </div>
+                    <div class="form-group">
+                        <label for="collaborativeWeight">Collaborative Weight:</label>
+                        <input type="number" id="collaborativeWeight" step="0.1" min="0" max="1" value="0.35">
+                    </div>
+                    <div class="form-group">
+                        <label for="neuralWeight">Neural Network Weight:</label>
+                        <input type="number" id="neuralWeight" step="0.1" min="0" max="1" value="0.25">
+                    </div>
+                    <button class="btn" onclick="updateWeights()">Update Weights</button>
+                </div>
+            </div>
+
+            <div id="trainingResult"></div>
+        </div>
+
+        <!-- Analytics Tab -->
+        <div id="analytics" class="tab-content">
+            <div class="card">
+                <h3>System Analytics</h3>
+                
+                <div class="actions">
+                    <button class="btn" onclick="getEngagementAnalytics()">User Engagement</button>
+                    <button class="btn" onclick="getItemAnalytics()">Item Performance</button>
+                    <button class="btn" onclick="evaluateRecommendations()">Evaluate Quality</button>
+                    <button class="btn btn-secondary" onclick="getCacheStats()">Cache Stats</button>
+                </div>
+            </div>
+
+            <div id="analyticsResult"></div>
+        </div>
+
+        <!-- A/B Testing Tab -->
+        <div id="experiments" class="tab-content">
+            <div class="card">
+                <h3>A/B Testing Experiments</h3>
+                
+                <div class="actions">
+                    <button class="btn" onclick="listExperiments()">List Experiments</button>
+                    <button class="btn btn-success" onclick="createSampleExperiment()">Create Sample Experiment</button>
+                </div>
+                
+                <div class="card">
+                    <h4>Create New Experiment</h4>
+                    <div class="form-group">
+                        <label for="expName">Experiment Name:</label>
+                        <input type="text" id="expName" placeholder="e.g., Content vs Neural">
+                    </div>
+                    <div class="form-group">
+                        <label for="expDescription">Description:</label>
+                        <input type="text" id="expDescription" placeholder="Testing different algorithms">
+                    </div>
+                    <button class="btn" onclick="createCustomExperiment()">Create Experiment</button>
+                </div>
+            </div>
+
+            <div id="experimentsResult"></div>
+        </div>
+
+        <!-- System Status Tab -->
+        <div id="system" class="tab-content">
+            <div class="card">
+                <h3>System Health & Status</h3>
+                
+                <div class="actions">
+                    <button class="btn" onclick="getHealthStatus()">Health Check</button>
+                    <button class="btn" onclick="getSystemStats()">System Statistics</button>
+                    <button class="btn btn-secondary" onclick="getUserProfile(1)">Sample User Profile</button>
+                </div>
+            </div>
+
+            <div id="systemResult"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+        
+        function switchTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab content and mark tab as active
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+        
+        function showLoading(containerId) {
+            document.getElementById(containerId).innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Loading...</p>
+                </div>
+            `;
+        }
+        
+        function showError(containerId, error) {
+            document.getElementById(containerId).innerHTML = `
+                <div class="status error">
+                    <strong>Error:</strong> ${error.message || error}
+                </div>
+            `;
+        }
+        
+        function showSuccess(containerId, message) {
+            document.getElementById(containerId).innerHTML = `
+                <div class="status success">
+                    <strong>Success:</strong> ${message}
+                </div>
+            `;
+        }
+        
+        async function apiRequest(endpoint, options = {}) {
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    },
+                    ...options
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                return await response.json();
+            } catch (error) {
+                console.error('API Request Error:', error);
+                throw error;
+            }
+        }
+        
+        function getRandomUser() {
+            const randomId = Math.floor(Math.random() * 80) + 1;
+            document.getElementById('userId').value = randomId;
+            
+            // Set user type based on ID range (approximately)
+            if (randomId <= 50) {
+                document.getElementById('userType').value = 'developer';
+            } else if (randomId <= 70) {
+                document.getElementById('userType').value = 'founder';
+            } else {
+                document.getElementById('userType').value = 'investor';
+            }
+        }
+        
+        async function getRecommendations() {
+            const userId = parseInt(document.getElementById('userId').value);
+            const userType = document.getElementById('userType').value;
+            const limit = parseInt(document.getElementById('limit').value);
+            
+            showLoading('recommendationsResult');
+            
+            try {
+                const data = await apiRequest('/api/v1/recommendations', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        user_id: userId,
+                        user_type: userType,
+                        limit: limit
+                    })
+                });
+                
+                displayRecommendations(data);
+            } catch (error) {
+                showError('recommendationsResult', error);
+            }
+        }
+        
+        function displayRecommendations(data) {
+            const resultsHtml = `
+                <div class="card">
+                    <h4>🎯 Recommendations for User ${data.user_id} (${data.algorithm_used})</h4>
+                    <div class="metrics">
+                        <div class="metric">
+                            <div class="value">${data.total_results}</div>
+                            <div class="label">Total Results</div>
+                        </div>
+                        <div class="metric">
+                            <div class="value">${data.processing_time_ms.toFixed(1)}ms</div>
+                            <div class="label">Processing Time</div>
+                        </div>
+                        <div class="metric">
+                            <div class="value">${data.algorithm_used}</div>
+                            <div class="label">Algorithm Used</div>
+                        </div>
+                    </div>
+                    
+                    <div class="grid">
+                        ${data.results.map(rec => formatRecommendationCard(rec, data.user_id)).join('')}
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('recommendationsResult').innerHTML = resultsHtml;
+        }
+        
+        function formatRecommendationCard(rec, userId) {
+            if (rec.item_type === 'position') {
+                return formatJobPositionCard(rec, userId);
+            } else if (rec.item_type === 'startup') {
+                return formatStartupCard(rec, userId);
+            } else if (rec.item_type === 'user') {
+                return formatDeveloperCard(rec, userId);
+            } else {
+                return formatGenericCard(rec, userId);
+            }
+        }
+        
+        function formatJobPositionCard(rec, userId) {
+            const title = rec.metadata?.title || 'Job Position';
+            const startupId = rec.metadata?.startup_id || 'Unknown';
+            const method = rec.metadata?.method || rec.metadata?.fallback_method || 'AI Matching';
+            
+            return `
+                <div class="recommendation" style="border-left: 4px solid #28a745;">
+                    <h4>💼 ${title}</h4>
+                    <div style="margin: 10px 0;">
+                        <span class="badge" style="background: #28a745; color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; margin-right: 8px;">JOB POSITION</span>
+                        <span class="score">Score: ${rec.score.toFixed(3)} | Rank: #${rec.rank}</span>
+                    </div>
+                    <div style="margin: 15px 0;">
+                        <p><strong>🏢 Company:</strong> Startup #${startupId}</p>
+                        <p><strong>🎯 Matching Method:</strong> ${method}</p>
+                        <p><strong>🆔 Position ID:</strong> ${rec.item_id}</p>
+                    </div>
+                    <div class="reasons">
+                        <strong>💡 Why this matches:</strong>
+                        <ul style="margin: 8px 0; padding-left: 20px;">
+                            ${rec.match_reasons.map(reason => `<li>${reason}</li>`).join('')}
+                        </ul>
+                    </div>
+                    <div class="feedback-buttons">
+                        <button class="btn btn-success" onclick="logFeedback(${userId}, ${rec.item_id}, '${rec.item_type}', 'like')">👍 Apply</button>
+                        <button class="btn btn-danger" onclick="logFeedback(${userId}, ${rec.item_id}, '${rec.item_type}', 'pass')">👎 Not Interested</button>
+                        <button class="btn" onclick="logFeedback(${userId}, ${rec.item_id}, '${rec.item_type}', 'view')">👁️ View Details</button>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function formatStartupCard(rec, userId) {
+            const name = rec.metadata?.name || `Startup #${rec.item_id}`;
+            const founderId = rec.metadata?.founder_id || 'Unknown';
+            const industry = rec.metadata?.industry || [];
+            const stage = rec.metadata?.stage || 'Unknown';
+            const method = rec.metadata?.method || 'AI Matching';
+            
+            const industryText = Array.isArray(industry) ? industry.join(', ') : (industry || 'Various');
+            
+            return `
+                <div class="recommendation" style="border-left: 4px solid #17a2b8;">
+                    <h4>🚀 ${name}</h4>
+                    <div style="margin: 10px 0;">
+                        <span class="badge" style="background: #17a2b8; color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; margin-right: 8px;">STARTUP</span>
+                        <span class="score">Score: ${rec.score.toFixed(3)} | Rank: #${rec.rank}</span>
+                    </div>
+                    <div style="margin: 15px 0;">
+                        <p><strong>👤 Founder:</strong> User #${founderId}</p>
+                        <p><strong>🏭 Industry:</strong> ${industryText}</p>
+                        ${stage !== 'Unknown' ? `<p><strong>📈 Stage:</strong> ${stage}</p>` : ''}
+                        <p><strong>🎯 Matching Method:</strong> ${method}</p>
+                        <p><strong>🆔 Startup ID:</strong> ${rec.item_id}</p>
+                    </div>
+                    <div class="reasons">
+                        <strong>💡 Why this matches:</strong>
+                        <ul style="margin: 8px 0; padding-left: 20px;">
+                            ${rec.match_reasons.map(reason => `<li>${reason}</li>`).join('')}
+                        </ul>
+                    </div>
+                    <div class="feedback-buttons">
+                        <button class="btn btn-success" onclick="logFeedback(${userId}, ${rec.item_id}, '${rec.item_type}', 'like')">💰 Invest</button>
+                        <button class="btn btn-danger" onclick="logFeedback(${userId}, ${rec.item_id}, '${rec.item_type}', 'pass')">👎 Pass</button>
+                        <button class="btn" onclick="logFeedback(${userId}, ${rec.item_id}, '${rec.item_type}', 'view')">📋 Learn More</button>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function formatDeveloperCard(rec, userId) {
+            const userType = rec.metadata?.user_type || 'Developer';
+            const skills = rec.metadata?.skills || [];
+            const method = rec.metadata?.method || 'AI Matching';
+            
+            const skillsText = Array.isArray(skills) ? skills.slice(0, 4).join(', ') + (skills.length > 4 ? '...' : '') : (skills || 'Various skills');
+            
+            return `
+                <div class="recommendation" style="border-left: 4px solid #ffc107;">
+                    <h4>👨‍💻 ${userType.charAt(0).toUpperCase() + userType.slice(1)}</h4>
+                    <div style="margin: 10px 0;">
+                        <span class="badge" style="background: #ffc107; color: #212529; padding: 4px 8px; border-radius: 12px; font-size: 11px; margin-right: 8px;">DEVELOPER</span>
+                        <span class="score">Score: ${rec.score.toFixed(3)} | Rank: #${rec.rank}</span>
+                    </div>
+                    <div style="margin: 15px 0;">
+                        <p><strong>🛠️ Skills:</strong> ${skillsText}</p>
+                        <p><strong>🎯 Matching Method:</strong> ${method}</p>
+                        <p><strong>🆔 User ID:</strong> ${rec.item_id}</p>
+                    </div>
+                    <div class="reasons">
+                        <strong>💡 Why this matches:</strong>
+                        <ul style="margin: 8px 0; padding-left: 20px;">
+                            ${rec.match_reasons.map(reason => `<li>${reason}</li>`).join('')}
+                        </ul>
+                    </div>
+                    <div class="feedback-buttons">
+                        <button class="btn btn-success" onclick="logFeedback(${userId}, ${rec.item_id}, '${rec.item_type}', 'like')">🤝 Connect</button>
+                        <button class="btn btn-danger" onclick="logFeedback(${userId}, ${rec.item_id}, '${rec.item_type}', 'pass')">👎 Not a fit</button>
+                        <button class="btn" onclick="logFeedback(${userId}, ${rec.item_id}, '${rec.item_type}', 'view')">📄 View Profile</button>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function formatGenericCard(rec, userId) {
+            return `
+                <div class="recommendation">
+                    <h4>📄 ${rec.item_type} #${rec.item_id}</h4>
+                    <div style="margin: 10px 0;">
+                        <span class="badge" style="background: #6c757d; color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; margin-right: 8px;">${rec.item_type.toUpperCase()}</span>
+                        <span class="score">Score: ${rec.score.toFixed(3)} | Rank: #${rec.rank}</span>
+                    </div>
+                    <div class="reasons">
+                        <strong>Match Reasons:</strong>
+                        <ul style="margin: 8px 0; padding-left: 20px;">
+                            ${rec.match_reasons.map(reason => `<li>${reason}</li>`).join('')}
+                        </ul>
+                    </div>
+                    ${rec.metadata && Object.keys(rec.metadata).length > 0 ? 
+                        '<details style="margin: 10px 0;"><summary style="cursor: pointer; color: #007bff;">📋 View Metadata</summary><pre style="font-size: 11px; background: #f8f9fa; padding: 8px; border-radius: 4px; margin-top: 8px;">' + JSON.stringify(rec.metadata, null, 2) + '</pre></details>' : 
+                        ''
+                    }
+                    <div class="feedback-buttons">
+                        <button class="btn btn-success" onclick="logFeedback(${userId}, ${rec.item_id}, '${rec.item_type}', 'like')">👍 Like</button>
+                        <button class="btn btn-danger" onclick="logFeedback(${userId}, ${rec.item_id}, '${rec.item_type}', 'pass')">👎 Pass</button>
+                        <button class="btn" onclick="logFeedback(${userId}, ${rec.item_id}, '${rec.item_type}', 'view')">👁️ View</button>
+                    </div>
+                </div>
+            `;
+        }
+        
+        async function logFeedback(userId, itemId, itemType, feedbackType) {
+            try {
+                const isExplicit = ['like', 'pass', 'super_like'].includes(feedbackType);
+                const endpoint = isExplicit ? '/api/v1/feedback/explicit' : '/api/v1/feedback/implicit';
+                
+                const requestBody = {
+                    user_id: userId,
+                    item_id: itemId,
+                    item_type: itemType,
+                };
+                
+                if (isExplicit) {
+                    requestBody.feedback_type = feedbackType;
+                } else {
+                    requestBody.event_type = feedbackType;
+                }
+                
+                await apiRequest(endpoint, {
+                    method: 'POST',
+                    body: JSON.stringify(requestBody)
+                });
+                
+                // Show brief success message
+                const button = event.target;
+                const originalText = button.textContent;
+                button.textContent = '✓ Logged';
+                button.disabled = true;
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.disabled = false;
+                }, 1500);
+                
+            } catch (error) {
+                console.error('Error logging feedback:', error);
+                alert('Error logging feedback: ' + error.message);
+            }
+        }
+        
+        async function trainModels() {
+            showLoading('trainingResult');
+            
+            try {
+                const data = await apiRequest('/api/v1/models/train', {
+                    method: 'POST',
+                    body: JSON.stringify({})
+                });
+                
+                document.getElementById('trainingResult').innerHTML = `
+                    <div class="card">
+                        <h4>Training Results</h4>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                showError('trainingResult', error);
+            }
+        }
+        
+        async function loadModels() {
+            showLoading('trainingResult');
+            
+            try {
+                const data = await apiRequest('/api/v1/models/load', {
+                    method: 'POST'
+                });
+                
+                document.getElementById('trainingResult').innerHTML = `
+                    <div class="card">
+                        <h4>Model Loading Results</h4>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                showError('trainingResult', error);
+            }
+        }
+        
+        async function getAlgorithmStatus() {
+            showLoading('trainingResult');
+            
+            try {
+                const data = await apiRequest('/api/v1/algorithms/status');
+                
+                document.getElementById('trainingResult').innerHTML = `
+                    <div class="card">
+                        <h4>Algorithm Status</h4>
+                        <div class="grid">
+                            ${Object.entries(data.algorithms).map(([name, status]) => `
+                                <div class="metric">
+                                    <div class="value">${status.trained ? '✅' : '❌'}</div>
+                                    <div class="label">${name} (${(status.weight * 100).toFixed(0)}%)</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                showError('trainingResult', error);
+            }
+        }
+        
+        async function updateWeights() {
+            const weights = {
+                content_based: parseFloat(document.getElementById('contentWeight').value),
+                collaborative: parseFloat(document.getElementById('collaborativeWeight').value),
+                two_tower: parseFloat(document.getElementById('neuralWeight').value)
+            };
+            
+            showLoading('trainingResult');
+            
+            try {
+                const data = await apiRequest('/api/v1/models/weights', {
+                    method: 'PUT',
+                    body: JSON.stringify({ weights })
+                });
+                
+                showSuccess('trainingResult', 'Algorithm weights updated successfully');
+            } catch (error) {
+                showError('trainingResult', error);
+            }
+        }
+        
+        async function getEngagementAnalytics() {
+            showLoading('analyticsResult');
+            
+            try {
+                const data = await apiRequest('/api/v1/analytics/engagement');
+                
+                document.getElementById('analyticsResult').innerHTML = `
+                    <div class="card">
+                        <h4>User Engagement Analytics (Last 30 days)</h4>
+                        <div class="metrics">
+                            <div class="metric">
+                                <div class="value">${data.engagement_stats.active_users}</div>
+                                <div class="label">Active Users</div>
+                            </div>
+                            <div class="metric">
+                                <div class="value">${data.engagement_stats.total_implicit_feedback}</div>
+                                <div class="label">Implicit Feedback</div>
+                            </div>
+                            <div class="metric">
+                                <div class="value">${data.engagement_stats.total_explicit_feedback}</div>
+                                <div class="label">Explicit Feedback</div>
+                            </div>
+                        </div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                showError('analyticsResult', error);
+            }
+        }
+        
+        async function getItemAnalytics() {
+            showLoading('analyticsResult');
+            
+            try {
+                const data = await apiRequest('/api/v1/analytics/items');
+                
+                document.getElementById('analyticsResult').innerHTML = `
+                    <div class="card">
+                        <h4>Item Performance Analytics</h4>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                showError('analyticsResult', error);
+            }
+        }
+        
+        async function evaluateRecommendations() {
+            const userIds = [1, 2, 3, 4, 5]; // Sample user IDs
+            showLoading('analyticsResult');
+            
+            try {
+                const data = await apiRequest(`/api/v1/analytics/evaluate?${userIds.map(id => `user_ids=${id}`).join('&')}&k_values=5&k_values=10`, {
+                    method: 'POST'
+                });
+                
+                document.getElementById('analyticsResult').innerHTML = `
+                    <div class="card">
+                        <h4>Recommendation Quality Evaluation</h4>
+                        <div class="metrics">
+                            <div class="metric">
+                                <div class="value">${data.evaluated_users}</div>
+                                <div class="label">Users Evaluated</div>
+                            </div>
+                        </div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                showError('analyticsResult', error);
+            }
+        }
+        
+        async function getCacheStats() {
+            showLoading('analyticsResult');
+            
+            try {
+                const data = await apiRequest('/api/v1/cache/stats');
+                
+                document.getElementById('analyticsResult').innerHTML = `
+                    <div class="card">
+                        <h4>Cache Statistics</h4>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                showError('analyticsResult', error);
+            }
+        }
+        
+        async function listExperiments() {
+            showLoading('experimentsResult');
+            
+            try {
+                const data = await apiRequest('/api/v1/experiments');
+                
+                document.getElementById('experimentsResult').innerHTML = `
+                    <div class="card">
+                        <h4>A/B Testing Experiments</h4>
+                        <div class="metrics">
+                            <div class="metric">
+                                <div class="value">${data.total_count}</div>
+                                <div class="label">Total Experiments</div>
+                            </div>
+                        </div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                showError('experimentsResult', error);
+            }
+        }
+        
+        async function createSampleExperiment() {
+            showLoading('experimentsResult');
+            
+            try {
+                const experimentData = {
+                    name: "Content vs Neural Test",
+                    description: "Comparing content-based vs neural network recommendations",
+                    algorithms: ["content_based", "two_tower"],
+                    traffic_split: {
+                        "content_based": 0.5,
+                        "two_tower": 0.5
+                    },
+                    target_user_types: ["developer", "investor"],
+                    min_sample_size: 50
+                };
+                
+                const data = await apiRequest('/api/v1/experiments', {
+                    method: 'POST',
+                    body: JSON.stringify(experimentData)
+                });
+                
+                document.getElementById('experimentsResult').innerHTML = `
+                    <div class="card">
+                        <h4>Experiment Created</h4>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                        <div class="actions">
+                            <button class="btn btn-success" onclick="startExperiment('${data.experiment_id}')">Start Experiment</button>
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                showError('experimentsResult', error);
+            }
+        }
+        
+        async function startExperiment(experimentId) {
+            try {
+                const data = await apiRequest(`/api/v1/experiments/${experimentId}/start`, {
+                    method: 'POST'
+                });
+                
+                showSuccess('experimentsResult', `Experiment ${experimentId} started successfully`);
+            } catch (error) {
+                showError('experimentsResult', error);
+            }
+        }
+        
+        async function getHealthStatus() {
+            showLoading('systemResult');
+            
+            try {
+                const data = await apiRequest('/health');
+                
+                document.getElementById('systemResult').innerHTML = `
+                    <div class="card">
+                        <h4>System Health Status</h4>
+                        <div class="metrics">
+                            <div class="metric">
+                                <div class="value">${data.status === 'healthy' ? '✅' : '❌'}</div>
+                                <div class="label">System Status</div>
+                            </div>
+                            <div class="metric">
+                                <div class="value">${data.database === 'healthy' ? '✅' : '❌'}</div>
+                                <div class="label">Database</div>
+                            </div>
+                        </div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                showError('systemResult', error);
+            }
+        }
+        
+        async function getSystemStats() {
+            showLoading('systemResult');
+            
+            try {
+                const data = await apiRequest('/api/v1/stats');
+                
+                document.getElementById('systemResult').innerHTML = `
+                    <div class="card">
+                        <h4>System Statistics</h4>
+                        <div class="metrics">
+                            <div class="metric">
+                                <div class="value">${data.users}</div>
+                                <div class="label">Total Users</div>
+                            </div>
+                        </div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                showError('systemResult', error);
+            }
+        }
+        
+        async function getUserProfile(userId) {
+            showLoading('systemResult');
+            
+            try {
+                const data = await apiRequest(`/users/${userId}/profile`);
+                
+                document.getElementById('systemResult').innerHTML = `
+                    <div class="card">
+                        <h4>User Profile - ID: ${data.user_id}</h4>
+                        <div class="metrics">
+                            <div class="metric">
+                                <div class="value">${data.user_type}</div>
+                                <div class="label">User Type</div>
+                            </div>
+                        </div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                showError('systemResult', error);
+            }
+        }
+        
+        // Initialize with a sample user
+        window.addEventListener('load', () => {
+            getRandomUser();
+        });
+    </script>
+</body>
+</html>
