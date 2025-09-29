@@ -3,7 +3,7 @@ import uuid
 from contextlib import asynccontextmanager
 from typing import List, Dict, Any, Optional
 
-from fastapi import FastAPI, HTTPException, Depends, Query
+from fastapi import FastAPI, HTTPException, Depends, Query, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -25,6 +25,23 @@ from analytics.metrics import RecommendationMetrics, AnalyticsDashboard
 from ab_testing import ABTestingFramework, ExperimentConfig, ExperimentStatus
 from caching import get_cache_stats
 from sqlalchemy.orm import Session
+from sqlalchemy import func
+
+# Helper: normalize user type aliases coming from UI (e.g., 'student', 'entrepreneur')
+ALLOWED_USER_TYPES = {"developer", "founder", "investor"}
+
+def normalize_user_type(user_type: str) -> str:
+    if not user_type:
+        return user_type
+    t = user_type.strip().lower()
+    if t in ("student", "intern"):
+        return "developer"
+    if t in ("entrepreneur", "entreprenuer", "founder"):
+        return "founder"
+    if t in ALLOWED_USER_TYPES:
+        return t
+    # Default: return as-is to avoid unexpected behavior
+    return t
 
 # Configure logging
 logging.basicConfig(
@@ -78,6 +95,14 @@ app.add_middleware(
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Pydantic models for API
+# API Key dependency
+async def verify_api_key(x_api_key: Optional[str] = Header(default=None)):
+    expected = settings.platform_api_key
+    if not expected:
+        return  # No key configured => allow
+    if not x_api_key or x_api_key != expected:
+        raise HTTPException(status_code=401, detail="Invalid or missing API key")
+
 class RecommendationRequestAPI(BaseModel):
     user_id: int
     user_type: str
@@ -95,6 +120,10 @@ class UserProfileResponse(BaseModel):
     user_id: int
     user_type: str
     profile_data: Dict[str, Any]
+
+# Simple UC response
+class UCRecommendationsResponse(BaseModel):
+    recommendations: List[Dict[str, Any]]
 
 # Web UI Route
 @app.get("/demo", tags=["UI"])
@@ -141,13 +170,17 @@ async def get_user_profile(user_id: int, db: Session = Depends(get_db)):
 @app.post(f"{settings.api_v1_str}/recommendations", response_model=RecommendationResponse, tags=["Recommendations"])
 async def get_recommendations(
     request: RecommendationRequestAPI,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(verify_api_key)
 ):
     """Get personalized recommendations."""
     start_time = time.time()
     request_id = str(uuid.uuid4())
     
     try:
+        # Normalize incoming user_type aliases from UI (e.g., student -> developer)
+        normalized_type = normalize_user_type(request.user_type)
+        
         # Validate user exists
         user = db.query(User).filter(User.user_id == request.user_id).first()
         if not user:
@@ -156,7 +189,7 @@ async def get_recommendations(
         # Create recommendation request
         rec_request = RecommendationRequest(
             user_id=request.user_id,
-            user_type=request.user_type,
+            user_type=normalized_type,
             limit=request.limit,
             filters=request.filters,
             context=request.context
@@ -179,7 +212,8 @@ async def get_recommendations(
             metadata={
                 "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
                 "filters_applied": request.filters or {},
-                "context": request.context or {}
+                "context": request.context or {},
+                "normalized_user_type": normalized_type
             }
         )
         
@@ -708,6 +742,320 @@ async def get_cache_statistics():
     except Exception as e:
         logger.error(f"Error getting cache stats: {e}")
         raise HTTPException(status_code=500, detail="Failed to get cache statistics")
+
+# =========================
+# Use Case Endpoints (2.7.1)
+# =========================
+
+class UCFounderDevelopersRequest(BaseModel):
+    founder_id: int
+    limit: int = 10
+    filters: Optional[Dict[str, Any]] = None
+
+@app.post(f"{settings.api_v1_str}/uc/founder/developers", response_model=UCRecommendationsResponse, tags=["Use Cases"])
+async def uc_founder_developers(request: UCFounderDevelopersRequest, db: Session = Depends(get_db), _: None = Depends(verify_api_key)):
+    """UC1: Founder – Developer Match. Returns ranked developers (name first) without algorithm details."""
+    rec_request = RecommendationRequest(
+        user_id=request.founder_id,
+        user_type="founder",
+        limit=request.limit,
+        filters=request.filters
+    )
+    results = await hybrid_recommender.recommend(rec_request)
+
+    dev_ids = [r.item_id for r in results if r.item_type == "user"]
+    developers = {}
+    if dev_ids:
+        rows = db.query(User).filter(User.user_id.in_(dev_ids)).all()
+        for u in rows:
+            if u and isinstance(u.profile_data, dict):
+                developers[u.user_id] = {
+                    "developer_id": u.user_id,
+                    "name": u.profile_data.get("name", f"User #{u.user_id}"),
+                    "skills": u.profile_data.get("skills", []),
+                    "experience_years": u.profile_data.get("experience_years"),
+                    "location": u.profile_data.get("location"),
+                    "bio": u.profile_data.get("bio")
+                }
+
+    recs = []
+    rank_counter = 1
+    for r in results:
+        if r.item_type != "user":
+            continue
+        meta = developers.get(r.item_id, {"developer_id": r.item_id, "name": f"User #{r.item_id}"})
+        recs.append({
+            **meta,
+            "score": round(float(r.score), 4),
+            "rank": rank_counter
+        })
+        rank_counter += 1
+    return {"recommendations": recs}
+
+class UCFounderInvestorsRequest(BaseModel):
+    founder_id: int
+    limit: int = 10
+
+@app.post(f"{settings.api_v1_str}/uc/founder/investors", response_model=UCRecommendationsResponse, tags=["Use Cases"])
+async def uc_founder_investors(request: UCFounderInvestorsRequest, db: Session = Depends(get_db), _: None = Depends(verify_api_key)):
+    """UC2: Founder – Investor Match. Heuristic ranking of investors by industry/stage/check size/location fit."""
+    from database.models import Startup
+    startup = db.query(Startup).filter(Startup.founder_id == request.founder_id).first()
+    if not startup:
+        return {"recommendations": []}
+    meta = startup.startup_metadata or {}
+    s_industries = set(meta.get("industry", []))
+    s_stage = meta.get("stage")
+    s_location = meta.get("location")
+    s_funding = meta.get("funding_amount")
+
+    investors = db.query(User).filter(User.user_type == "investor").all()
+
+    scored = []
+    for inv in investors:
+        p = inv.profile_data or {}
+        industries = set(p.get("interested_industries", []))
+        stages = set(p.get("investment_stages", []))
+        check_min = p.get("check_size_min")
+        check_max = p.get("check_size_max")
+        location = p.get("location")
+
+        score = 0.0
+        if s_industries and industries:
+            score += len(s_industries.intersection(industries))
+        if s_stage and stages and s_stage in stages:
+            score += 1.0
+        if s_funding and check_min is not None and check_max is not None:
+            if check_min <= s_funding <= check_max:
+                score += 1.5
+        if s_location and location and s_location.lower() == location.lower():
+            score += 0.5
+
+        scored.append({
+            "investor_id": inv.user_id,
+            "name": p.get("name", f"User #{inv.user_id}"),
+            "firm": p.get("firm"),
+            "interested_industries": list(industries),
+            "investment_stages": list(stages),
+            "check_size_min": check_min,
+            "check_size_max": check_max,
+            "location": location,
+            "score": round(score, 4)
+        })
+
+    scored.sort(key=lambda x: x["score"], reverse=True)
+    for i, it in enumerate(scored):
+        it["rank"] = i + 1
+    return {"recommendations": scored[: request.limit]}
+
+class UCDeveloperStartupsRequest(BaseModel):
+    developer_id: int
+    limit: int = 10
+
+@app.post(f"{settings.api_v1_str}/uc/developer/startups", response_model=UCRecommendationsResponse, tags=["Use Cases"])
+async def uc_developer_startups(request: UCDeveloperStartupsRequest, db: Session = Depends(get_db), _: None = Depends(verify_api_key)):
+    """UC3: Developer – Startup Discovery. Heuristic match by industry and required skills."""
+    dev = db.query(User).filter(User.user_id == request.developer_id, User.user_type == "developer").first()
+    if not dev:
+        raise HTTPException(status_code=404, detail="Developer not found")
+    p = dev.profile_data or {}
+    dev_skills = set(p.get("skills", []))
+    dev_industries = set(p.get("preferred_industries", []))
+    dev_location = p.get("location")
+
+    from database.models import Startup
+    startups = db.query(Startup).all()
+
+    recs = []
+    for s in startups:
+        sm = s.startup_metadata or {}
+        s_ind = set(sm.get("industry", []))
+        req_skills = set(sm.get("required_skills", []))
+        s_loc = sm.get("location")
+
+        score = 0.0
+        if dev_industries and s_ind:
+            score += len(dev_industries.intersection(s_ind))
+        if dev_skills and req_skills:
+            score += len(dev_skills.intersection(req_skills)) * 0.5
+        if dev_location and s_loc and dev_location.lower() == s_loc.lower():
+            score += 0.5
+
+        recs.append({
+            "startup_id": s.startup_id,
+            "name": s.name,
+            "industry": list(s_ind),
+            "stage": sm.get("stage"),
+            "team_size": sm.get("team_size"),
+            "location": s_loc,
+            "score": round(score, 4)
+        })
+
+    recs.sort(key=lambda x: x["score"], reverse=True)
+    for i, it in enumerate(recs):
+        it["rank"] = i + 1
+    return {"recommendations": recs[: request.limit]}
+
+class UCInvestorStartupsRequest(BaseModel):
+    investor_id: int
+    limit: int = 10
+    filters: Optional[Dict[str, Any]] = None
+
+@app.post(f"{settings.api_v1_str}/uc/investor/startups", response_model=UCRecommendationsResponse, tags=["Use Cases"])
+async def uc_investor_startups(request: UCInvestorStartupsRequest, db: Session = Depends(get_db), _: None = Depends(verify_api_key)):
+    """UC4: Investor – Startup Discovery. Uses hybrid and returns a simplified list."""
+    inv = db.query(User).filter(User.user_id == request.investor_id, User.user_type == "investor").first()
+    if not inv:
+        raise HTTPException(status_code=404, detail="Investor not found")
+
+    rec_request = RecommendationRequest(
+        user_id=request.investor_id,
+        user_type="investor",
+        limit=request.limit,
+        filters=request.filters
+    )
+    results = await hybrid_recommender.recommend(rec_request)
+    startup_ids = [r.item_id for r in results if r.item_type == "startup"]
+
+    from database.models import Startup
+    s_map = {}
+    if startup_ids:
+        rows = db.query(Startup).filter(Startup.startup_id.in_(startup_ids)).all()
+        for s in rows:
+            s_map[s.startup_id] = {
+                "startup_id": s.startup_id,
+                "name": s.name,
+                "stage": (s.startup_metadata or {}).get("stage"),
+                "industry": (s.startup_metadata or {}).get("industry", []),
+                "location": (s.startup_metadata or {}).get("location"),
+            }
+
+    recs = []
+    rank = 1
+    for r in results:
+        if r.item_type != "startup":
+            continue
+        recs.append({
+            **s_map.get(r.item_id, {"startup_id": r.item_id, "name": f"Startup #{r.item_id}"}),
+            "score": round(float(r.score), 4),
+            "rank": rank
+        })
+        rank += 1
+    return {"recommendations": recs}
+
+@app.get(f"{settings.api_v1_str}/uc/trending", response_model=UCRecommendationsResponse, tags=["Use Cases"])
+async def uc_trending(limit: int = 10, item_type: Optional[str] = None, db: Session = Depends(get_db), _: None = Depends(verify_api_key)):
+    """UC5: Non-Personalized Recommendations (Trending). Returns popular startups/positions by interactions."""
+    from database.models import ImplicitFeedback, Startup, Position
+
+    q = db.query(ImplicitFeedback.item_type, ImplicitFeedback.item_id, func.count().label("cnt"))
+    if item_type:
+        q = q.filter(ImplicitFeedback.item_type == item_type)
+    rows = q.group_by(ImplicitFeedback.item_type, ImplicitFeedback.item_id).order_by(func.count().desc()).limit(limit).all()
+
+    recs = []
+    for idx, row in enumerate(rows):
+        if row.item_type == 'startup':
+            s = db.query(Startup).filter(Startup.startup_id == row.item_id).first()
+            if s:
+                recs.append({
+                    "startup_id": s.startup_id,
+                    "name": s.name,
+                    "stage": (s.startup_metadata or {}).get("stage"),
+                    "industry": (s.startup_metadata or {}).get("industry", []),
+                    "popularity": int(row.cnt),
+                    "rank": idx + 1
+                })
+        elif row.item_type == 'position':
+            p = db.query(Position).filter(Position.position_id == row.item_id).first()
+            if p:
+                recs.append({
+                    "position_id": p.position_id,
+                    "title": p.title,
+                    "startup_id": p.startup_id,
+                    "popularity": int(row.cnt),
+                    "rank": idx + 1
+                })
+    return {"recommendations": recs}
+
+class UCFeedbackRequest(BaseModel):
+    user_id: int
+    item_type: str  # 'position' or 'startup'
+    item_id: int
+    feedback: str  # 'like', 'pass', 'super_like', 'view', 'click', 'save'
+    rating: Optional[float] = None
+    context: Optional[Dict[str, Any]] = None
+
+@app.post(f"{settings.api_v1_str}/uc/feedback", tags=["Use Cases"])
+async def uc_feedback(request: UCFeedbackRequest, db: Session = Depends(get_db), _: None = Depends(verify_api_key)):
+    """UC6: Provide Feedback on Recommendations (simplified)."""
+    explicit_types = {'like', 'pass', 'super_like', 'dislike', 'report'}
+    implicit_types = {'view', 'click', 'save', 'share', 'bookmark'}
+
+    if request.feedback in explicit_types:
+        try:
+            user = db.query(User).filter(User.user_id == request.user_id).first()
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+            from database.models import ExplicitFeedback as EF
+            existing = db.query(EF).filter(
+                EF.user_id == request.user_id,
+                EF.item_id == request.item_id,
+                EF.item_type == request.item_type
+            ).first()
+            if existing:
+                existing.feedback_type = request.feedback
+                existing.rating = request.rating
+                existing.timestamp = datetime.utcnow()
+                existing.context = request.context or {}
+                db.commit()
+                db.refresh(existing)
+                feedback_id = existing.feedback_id
+                action = "updated"
+            else:
+                rec = EF(
+                    user_id=request.user_id,
+                    item_type=request.item_type,
+                    item_id=request.item_id,
+                    feedback_type=request.feedback,
+                    rating=request.rating,
+                    timestamp=datetime.utcnow(),
+                    context=request.context or {}
+                )
+                db.add(rec)
+                db.commit()
+                db.refresh(rec)
+                feedback_id = rec.feedback_id
+                action = "created"
+            return {"status": "success", "feedback_id": feedback_id, "action": action}
+        except Exception as e:
+            logger.error(f"UC feedback explicit error: {e}")
+            db.rollback()
+            raise HTTPException(status_code=500, detail="Failed to log feedback")
+    elif request.feedback in implicit_types:
+        try:
+            user = db.query(User).filter(User.user_id == request.user_id).first()
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+            from database.models import ImplicitFeedback as IF
+            rec = IF(
+                user_id=request.user_id,
+                item_type=request.item_type,
+                item_id=request.item_id,
+                event_type=request.feedback,
+                timestamp=datetime.utcnow(),
+                context=request.context or {}
+            )
+            db.add(rec)
+            db.commit()
+            db.refresh(rec)
+            return {"status": "success", "feedback_id": rec.feedback_id, "action": "created"}
+        except Exception as e:
+            logger.error(f"UC feedback implicit error: {e}")
+            db.rollback()
+            raise HTTPException(status_code=500, detail="Failed to log feedback")
+    else:
+        raise HTTPException(status_code=400, detail="Invalid feedback type")
 
 if __name__ == "__main__":
     import uvicorn

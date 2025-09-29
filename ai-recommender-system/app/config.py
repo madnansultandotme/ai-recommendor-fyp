@@ -41,6 +41,10 @@ class Settings(BaseSettings):
         default="your-secret-key-here",
         env="SECRET_KEY"
     )
+    platform_api_key: str = Field(
+        default="demo-api-key-123",
+        env="PLATFORM_API_KEY"
+    )
     access_token_expire_minutes: int = Field(
         default=30,
         env="ACCESS_TOKEN_EXPIRE_MINUTES"

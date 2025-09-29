@@ -277,28 +277,35 @@
         </div>
 
         <div class="tabs">
-            <button class="tab active" onclick="switchTab('recommendations')">Get Recommendations</button>
-            <button class="tab" onclick="switchTab('training')">Model Training</button>
-            <button class="tab" onclick="switchTab('analytics')">Analytics</button>
-            <button class="tab" onclick="switchTab('experiments')">A/B Testing</button>
-            <button class="tab" onclick="switchTab('system')">System Status</button>
+            <button class="tab active" onclick="switchTab('recommendations', this)">Get Recommendations</button>
+            <button class="tab" onclick="switchTab('training', this)">Model Training</button>
+            <button class="tab" onclick="switchTab('analytics', this)">Analytics</button>
+            <button class="tab" onclick="switchTab('experiments', this)">A/B Testing</button>
+            <button class="tab" onclick="switchTab('system', this)">System Status</button>
         </div>
 
         <!-- Recommendations Tab -->
         <div id="recommendations" class="tab-content active">
-            <div class="card">
+<div class="card">
                 <h3>Get Personalized Recommendations</h3>
                 
                 <div class="form-group">
-                    <label for="userId">User ID (1-80):</label>
-                    <input type="number" id="userId" min="1" max="80" value="1">
+                    <label for="apiKey">API Key</label>
+                    <input type="text" id="apiKey" placeholder="demo-api-key-123" value="demo-api-key-123">
                 </div>
                 
                 <div class="form-group">
+                    <label for="userId">User ID (1-12):</label>
+                    <input type="number" id="userId" min="1" max="12" value="1">
+                </div>
+                
+<div class="form-group">
                     <label for="userType">User Type:</label>
                     <select id="userType">
                         <option value="developer">Developer</option>
+                        <option value="student">Student</option>
                         <option value="founder">Founder</option>
+                        <option value="entrepreneur">Entrepreneur</option>
                         <option value="investor">Investor</option>
                     </select>
                 </div>
@@ -306,6 +313,38 @@
                 <div class="form-group">
                     <label for="limit">Number of Recommendations:</label>
                     <input type="number" id="limit" min="1" max="20" value="5">
+                </div>
+
+                <div class="card" style="margin-top: 10px;">
+                    <h4>Preferences (optional)</h4>
+                    <div class="form-group">
+                        <label for="skillsInput">Skills (comma-separated)</label>
+                        <input type="text" id="skillsInput" placeholder="Python, Machine Learning, React">
+                    </div>
+                    <div class="form-group">
+                        <label for="industryInput">Industry (comma-separated)</label>
+                        <input type="text" id="industryInput" placeholder="AI/ML, HealthTech, SaaS">
+                    </div>
+                    <div class="form-group">
+                        <label for="rolesInput">Roles (comma-separated)</label>
+                        <input type="text" id="rolesInput" placeholder="ML Engineer, Data Scientist">
+                    </div>
+                    <div class="form-group">
+                        <label for="stageInput">Stage</label>
+                        <input type="text" id="stageInput" placeholder="Pre-Seed, Seed, Series A">
+                    </div>
+                    <div class="form-group">
+                        <label for="locationInput">Location</label>
+                        <input type="text" id="locationInput" placeholder="San Francisco, Remote">
+                    </div>
+                    <div class="form-group">
+                        <label for="checkMin">Check Size Min (Investors)</label>
+                        <input type="number" id="checkMin" min="0" placeholder="500000">
+                    </div>
+                    <div class="form-group">
+                        <label for="checkMax">Check Size Max (Investors)</label>
+                        <input type="number" id="checkMax" min="0" placeholder="3000000">
+                    </div>
                 </div>
                 
                 <button class="btn" onclick="getRecommendations()">Get Recommendations</button>
@@ -409,7 +448,7 @@
     <script>
         const API_BASE = 'http://localhost:8000';
         
-        function switchTab(tabName) {
+        function switchTab(tabName, element) {
             // Hide all tab contents
             document.querySelectorAll('.tab-content').forEach(content => {
                 content.classList.remove('active');
@@ -422,7 +461,9 @@
             
             // Show selected tab content and mark tab as active
             document.getElementById(tabName).classList.add('active');
-            event.target.classList.add('active');
+            if (element) {
+                element.classList.add('active');
+            }
         }
         
         function showLoading(containerId) {
@@ -450,11 +491,14 @@
             `;
         }
         
-        async function apiRequest(endpoint, options = {}) {
+async function apiRequest(endpoint, options = {}) {
             try {
+                const apiKeyEl = document.getElementById('apiKey');
+                const apiKey = apiKeyEl ? apiKeyEl.value.trim() : '';
                 const response = await fetch(`${API_BASE}${endpoint}`, {
                     headers: {
                         'Content-Type': 'application/json',
+                        'X-API-Key': apiKey,
                         ...options.headers
                     },
                     ...options
@@ -472,47 +516,194 @@
             }
         }
         
-        function getRandomUser() {
-            const randomId = Math.floor(Math.random() * 80) + 1;
-            document.getElementById('userId').value = randomId;
+function getRandomUser() {
+            // Use actual user IDs from database:
+            // IDs 1-5: developers, IDs 6-9: founders, IDs 10-12: investors
+            const userGroups = {
+                developer: [1, 2, 3, 4, 5],
+                founder: [6, 7, 8, 9],
+                investor: [10, 11, 12]
+            };
             
-            // Set user type based on ID range (approximately)
-            if (randomId <= 50) {
+            // Randomly pick a user type
+            const userTypes = Object.keys(userGroups);
+            const randomType = userTypes[Math.floor(Math.random() * userTypes.length)];
+            
+            // Randomly pick a user ID from that type
+            const userIds = userGroups[randomType];
+            const randomId = userIds[Math.floor(Math.random() * userIds.length)];
+            
+            // Set the user ID and type
+            document.getElementById('userId').value = randomId;
+            document.getElementById('userType').value = randomType;
+            
+            console.log(`Selected random user: ID ${randomId}, Type: ${randomType}`);
+        }
+        
+        function validateAndAdjustUser() {
+            // Validate user ID and type combination
+            const userId = parseInt(document.getElementById('userId').value);
+            const userType = document.getElementById('userType').value;
+            
+            if (isNaN(userId) || userId < 1 || userId > 12) {
+                // Invalid user ID, set to valid default
+                document.getElementById('userId').value = 1;
                 document.getElementById('userType').value = 'developer';
-            } else if (randomId <= 70) {
-                document.getElementById('userType').value = 'founder';
-            } else {
-                document.getElementById('userType').value = 'investor';
+                return;
+            }
+            
+            // Adjust user type based on user ID to match database
+            let correctType;
+            if (userId >= 1 && userId <= 5) {
+                correctType = 'developer';
+            } else if (userId >= 6 && userId <= 9) {
+                correctType = 'founder';
+            } else if (userId >= 10 && userId <= 12) {
+                correctType = 'investor';
+            }
+            
+            // Update the UI if the type doesn't match
+            if (userType !== correctType && correctType) {
+                document.getElementById('userType').value = correctType;
+                console.log(`Adjusted user type for ID ${userId}: ${userType} -> ${correctType}`);
             }
         }
         
-        async function getRecommendations() {
+function normalizeUserType(uiType) {
+            const t = (uiType || '').toLowerCase();
+            if (t === 'student' || t === 'intern') return 'developer';
+            if (t === 'entrepreneur' || t === 'entreprenuer') return 'founder';
+            return t;
+        }
+
+        function buildFiltersForUserType(uiType) {
+            const skillsRaw = document.getElementById('skillsInput').value.trim();
+            const industryRaw = document.getElementById('industryInput').value.trim();
+            const rolesRaw = document.getElementById('rolesInput').value.trim();
+            const stage = document.getElementById('stageInput').value.trim();
+            const location = document.getElementById('locationInput').value.trim();
+            const checkMin = document.getElementById('checkMin').value.trim();
+            const checkMax = document.getElementById('checkMax').value.trim();
+
+            const toArray = (s) => s ? s.split(',').map(x => x.trim()).filter(Boolean) : undefined;
+
+            const filters = {};
+            const t = normalizeUserType(uiType);
+
+            if (t === 'developer') {
+                // Looking for positions
+                const industries = toArray(industryRaw);
+                if (industries && industries.length) filters.industry = industries;
+                const roles = toArray(rolesRaw);
+                if (roles && roles.length) filters.roles = roles;
+                if (location) filters.location = location;
+            } else if (t === 'founder') {
+                // Looking for developers
+                const skills = toArray(skillsRaw);
+                if (skills && skills.length) filters.skills = skills;
+                if (location) filters.location = location;
+            } else if (t === 'investor') {
+                // Looking for startups
+                const industries = toArray(industryRaw);
+                if (industries && industries.length) filters.industry = industries;
+                if (stage) filters.stage = stage;
+                if (checkMin) filters.check_size_min = parseInt(checkMin, 10);
+                if (checkMax) filters.check_size_max = parseInt(checkMax, 10);
+                if (location) filters.location = location;
+            }
+
+            return Object.keys(filters).length ? filters : undefined;
+        }
+
+async function getRecommendations() {
+            // Validate and adjust user before making API call
+            validateAndAdjustUser();
+            
             const userId = parseInt(document.getElementById('userId').value);
-            const userType = document.getElementById('userType').value;
+            const uiUserType = document.getElementById('userType').value;
+            const normalizedUserType = normalizeUserType(uiUserType);
             const limit = parseInt(document.getElementById('limit').value);
+            const filters = buildFiltersForUserType(uiUserType);
             
             showLoading('recommendationsResult');
             
             try {
-                const data = await apiRequest('/api/v1/recommendations', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        user_id: userId,
-                        user_type: userType,
-                        limit: limit
-                    })
-                });
-                
-                displayRecommendations(data);
+                let data;
+                if (normalizedUserType === 'founder') {
+                    data = await apiRequest('/api/v1/uc/founder/developers', {
+                        method: 'POST',
+                        body: JSON.stringify({ founder_id: userId, limit, filters })
+                    });
+                    displayUCRecommendations(data);
+                } else if (normalizedUserType === 'developer') {
+                    data = await apiRequest('/api/v1/uc/developer/startups', {
+                        method: 'POST',
+                        body: JSON.stringify({ developer_id: userId, limit })
+                    });
+                    displayUCRecommendations(data);
+                } else if (normalizedUserType === 'investor') {
+                    data = await apiRequest('/api/v1/uc/investor/startups', {
+                        method: 'POST',
+                        body: JSON.stringify({ investor_id: userId, limit, filters })
+                    });
+                    displayUCRecommendations(data);
+                } else {
+                    // Fallback to generic
+                    data = await apiRequest('/api/v1/recommendations', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            user_id: userId,
+                            user_type: normalizedUserType,
+                            limit: limit,
+                            filters: filters || undefined,
+                            context: { ui_user_type: uiUserType }
+                        })
+                    });
+                    displayRecommendations(data);
+                }
             } catch (error) {
                 showError('recommendationsResult', error);
             }
         }
-        
-        function displayRecommendations(data) {
+
+        function displayUCRecommendations(data) {
+            const list = data.recommendations || [];
+            const listItems = list.map((item) => formatUCListItem(item)).join('');
             const resultsHtml = `
                 <div class="card">
-                    <h4>🎯 Recommendations for User ${data.user_id} (${data.algorithm_used})</h4>
+                    <h4>🎯 Recommendations</h4>
+                    <ol style="padding-left: 20px;">
+                        ${listItems}
+                    </ol>
+                </div>
+            `;
+            document.getElementById('recommendationsResult').innerHTML = resultsHtml;
+        }
+
+        function formatUCListItem(item) {
+            if (item.developer_id) {
+                return `<li>${item.rank}. ${item.name} — Developer (${(item.score ?? 0).toFixed(2)})</li>`;
+            }
+            if (item.startup_id && item.title) {
+                return `<li>${item.rank}. ${item.title} — Job (${(item.score ?? 0).toFixed(2)})</li>`;
+            }
+            if (item.startup_id) {
+                return `<li>${item.rank}. ${item.name} — Startup (${(item.score ?? 0).toFixed(2)})</li>`;
+            }
+            if (item.investor_id) {
+                return `<li>${item.rank}. ${item.name} — Investor (${(item.score ?? 0).toFixed(2)})</li>`;
+            }
+            if (item.title) {
+                return `<li>${item.rank}. ${item.title} (${(item.score ?? 0).toFixed(2)})</li>`;
+            }
+            return `<li>${item.rank}. ${item.name || 'Item'} (${(item.score ?? 0).toFixed(2)})</li>`;
+        }
+        
+function displayRecommendations(data) {
+            const listItems = data.results.map((rec, idx) => formatListItem(rec, idx)).join('');
+            const resultsHtml = `
+                <div class="card">
+                    <h4>🎯 Recommendations for User ${data.user_id}</h4>
                     <div class="metrics">
                         <div class="metric">
                             <div class="value">${data.total_results}</div>
@@ -522,19 +713,37 @@
                             <div class="value">${data.processing_time_ms.toFixed(1)}ms</div>
                             <div class="label">Processing Time</div>
                         </div>
-                        <div class="metric">
-                            <div class="value">${data.algorithm_used}</div>
-                            <div class="label">Algorithm Used</div>
-                        </div>
                     </div>
                     
                     <div class="grid">
                         ${data.results.map(rec => formatRecommendationCard(rec, data.user_id)).join('')}
                     </div>
+                    <div style="margin-top: 16px;">
+                        <h4>Plain List</h4>
+                        <ol style="padding-left: 20px;">
+                            ${listItems}
+                        </ol>
+                    </div>
                 </div>
             `;
             
             document.getElementById('recommendationsResult').innerHTML = resultsHtml;
+        }
+
+        function formatListItem(rec, idx) {
+            // Start each line with a real-world style name/title when possible
+            if (rec.item_type === 'user') {
+                const name = rec.metadata?.name || `User #${rec.item_id}`;
+                return `<li>${idx + 1}. ${name} — Developer (score ${rec.score.toFixed(2)})</li>`;
+            } else if (rec.item_type === 'position') {
+                const title = rec.metadata?.title || 'Job Position';
+                const company = rec.metadata?.company_name || rec.metadata?.startup_name || (rec.metadata?.startup_id ? `Startup #${rec.metadata.startup_id}` : 'Company');
+                return `<li>${idx + 1}. ${title} at ${company} — Job (score ${rec.score.toFixed(2)})</li>`;
+            } else if (rec.item_type === 'startup') {
+                const name = rec.metadata?.name || `Startup #${rec.item_id}`;
+                return `<li>${idx + 1}. ${name} — Startup (score ${rec.score.toFixed(2)})</li>`;
+            }
+            return `<li>${idx + 1}. ${rec.item_type} #${rec.item_id} (score ${rec.score.toFixed(2)})</li>`;
         }
         
         function formatRecommendationCard(rec, userId) {
@@ -549,22 +758,18 @@
             }
         }
         
-        function formatJobPositionCard(rec, userId) {
+function formatJobPositionCard(rec, userId) {
             const title = rec.metadata?.title || 'Job Position';
+            const companyName = rec.metadata?.company_name || rec.metadata?.startup_name || null;
             const startupId = rec.metadata?.startup_id || 'Unknown';
-            const method = rec.metadata?.method || rec.metadata?.fallback_method || 'AI Matching';
+            const companyDisplay = companyName ? companyName : `Startup #${startupId}`;
             
             return `
                 <div class="recommendation" style="border-left: 4px solid #28a745;">
-                    <h4>💼 ${title}</h4>
+                    <h4>💼 ${title} at ${companyDisplay}</h4>
                     <div style="margin: 10px 0;">
                         <span class="badge" style="background: #28a745; color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; margin-right: 8px;">JOB POSITION</span>
                         <span class="score">Score: ${rec.score.toFixed(3)} | Rank: #${rec.rank}</span>
-                    </div>
-                    <div style="margin: 15px 0;">
-                        <p><strong>🏢 Company:</strong> Startup #${startupId}</p>
-                        <p><strong>🎯 Matching Method:</strong> ${method}</p>
-                        <p><strong>🆔 Position ID:</strong> ${rec.item_id}</p>
                     </div>
                     <div class="reasons">
                         <strong>💡 Why this matches:</strong>
@@ -581,28 +786,20 @@
             `;
         }
         
-        function formatStartupCard(rec, userId) {
+function formatStartupCard(rec, userId) {
             const name = rec.metadata?.name || `Startup #${rec.item_id}`;
-            const founderId = rec.metadata?.founder_id || 'Unknown';
+            const founderName = rec.metadata?.founder || rec.metadata?.founder_name || null;
             const industry = rec.metadata?.industry || [];
-            const stage = rec.metadata?.stage || 'Unknown';
-            const method = rec.metadata?.method || 'AI Matching';
+            const stage = rec.metadata?.stage || undefined;
             
             const industryText = Array.isArray(industry) ? industry.join(', ') : (industry || 'Various');
             
             return `
                 <div class="recommendation" style="border-left: 4px solid #17a2b8;">
-                    <h4>🚀 ${name}</h4>
+                    <h4>🚀 ${name}${founderName ? ' — ' + founderName : ''}</h4>
                     <div style="margin: 10px 0;">
                         <span class="badge" style="background: #17a2b8; color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; margin-right: 8px;">STARTUP</span>
                         <span class="score">Score: ${rec.score.toFixed(3)} | Rank: #${rec.rank}</span>
-                    </div>
-                    <div style="margin: 15px 0;">
-                        <p><strong>👤 Founder:</strong> User #${founderId}</p>
-                        <p><strong>🏭 Industry:</strong> ${industryText}</p>
-                        ${stage !== 'Unknown' ? `<p><strong>📈 Stage:</strong> ${stage}</p>` : ''}
-                        <p><strong>🎯 Matching Method:</strong> ${method}</p>
-                        <p><strong>🆔 Startup ID:</strong> ${rec.item_id}</p>
                     </div>
                     <div class="reasons">
                         <strong>💡 Why this matches:</strong>
@@ -619,24 +816,17 @@
             `;
         }
         
-        function formatDeveloperCard(rec, userId) {
-            const userType = rec.metadata?.user_type || 'Developer';
+function formatDeveloperCard(rec, userId) {
+            const name = rec.metadata?.name || `User #${rec.item_id}`;
             const skills = rec.metadata?.skills || [];
-            const method = rec.metadata?.method || 'AI Matching';
-            
             const skillsText = Array.isArray(skills) ? skills.slice(0, 4).join(', ') + (skills.length > 4 ? '...' : '') : (skills || 'Various skills');
             
             return `
                 <div class="recommendation" style="border-left: 4px solid #ffc107;">
-                    <h4>👨‍💻 ${userType.charAt(0).toUpperCase() + userType.slice(1)}</h4>
+                    <h4>👨‍💻 ${name}</h4>
                     <div style="margin: 10px 0;">
                         <span class="badge" style="background: #ffc107; color: #212529; padding: 4px 8px; border-radius: 12px; font-size: 11px; margin-right: 8px;">DEVELOPER</span>
                         <span class="score">Score: ${rec.score.toFixed(3)} | Rank: #${rec.rank}</span>
-                    </div>
-                    <div style="margin: 15px 0;">
-                        <p><strong>🛠️ Skills:</strong> ${skillsText}</p>
-                        <p><strong>🎯 Matching Method:</strong> ${method}</p>
-                        <p><strong>🆔 User ID:</strong> ${rec.item_id}</p>
                     </div>
                     <div class="reasons">
                         <strong>💡 Why this matches:</strong>
@@ -653,10 +843,10 @@
             `;
         }
         
-        function formatGenericCard(rec, userId) {
+function formatGenericCard(rec, userId) {
             return `
                 <div class="recommendation">
-                    <h4>📄 ${rec.item_type} #${rec.item_id}</h4>
+                    <h4>📄 ${rec.metadata?.name || (rec.item_type + ' #' + rec.item_id)}</h4>
                     <div style="margin: 10px 0;">
                         <span class="badge" style="background: #6c757d; color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; margin-right: 8px;">${rec.item_type.toUpperCase()}</span>
                         <span class="score">Score: ${rec.score.toFixed(3)} | Rank: #${rec.rank}</span>
@@ -964,6 +1154,53 @@
             }
         }
         
+        async function createCustomExperiment() {
+            const name = document.getElementById('expName').value.trim();
+            const description = document.getElementById('expDescription').value.trim();
+            
+            if (!name || !description) {
+                showError('experimentsResult', { message: 'Please fill in experiment name and description' });
+                return;
+            }
+            
+            showLoading('experimentsResult');
+            
+            try {
+                const experimentData = {
+                    name: name,
+                    description: description,
+                    algorithms: ["content_based", "collaborative"],
+                    traffic_split: {
+                        "content_based": 0.5,
+                        "collaborative": 0.5
+                    },
+                    target_user_types: ["developer", "founder"],
+                    min_sample_size: 30
+                };
+                
+                const data = await apiRequest('/api/v1/experiments', {
+                    method: 'POST',
+                    body: JSON.stringify(experimentData)
+                });
+                
+                document.getElementById('experimentsResult').innerHTML = `
+                    <div class="card">
+                        <h4>Custom Experiment Created</h4>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                        <div class="actions">
+                            <button class="btn btn-success" onclick="startExperiment('${data.experiment_id}')">Start Experiment</button>
+                        </div>
+                    </div>
+                `;
+                
+                // Clear the form
+                document.getElementById('expName').value = '';
+                document.getElementById('expDescription').value = '';
+            } catch (error) {
+                showError('experimentsResult', error);
+            }
+        }
+        
         async function getHealthStatus() {
             showLoading('systemResult');
             
@@ -1039,7 +1276,19 @@
         
         // Initialize with a sample user
         window.addEventListener('load', () => {
-            getRandomUser();
+            // Set up event listeners for user validation
+            const userIdInput = document.getElementById('userId');
+            const userTypeSelect = document.getElementById('userType');
+            
+            if (userIdInput) {
+                userIdInput.addEventListener('change', validateAndAdjustUser);
+                userIdInput.addEventListener('input', validateAndAdjustUser);
+            }
+            
+            // Initialize with a valid developer user
+            document.getElementById('userId').value = 1;
+            document.getElementById('userType').value = 'developer';
+            validateAndAdjustUser();
         });
     </script>
 </body>

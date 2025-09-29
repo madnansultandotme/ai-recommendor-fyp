@@ -33,21 +33,37 @@ A production-ready AI-powered recommender system for startups, developers, and i
 
 ## Quick Start
 
-### 1. Setup Environment
+This section is tailored for Windows PowerShell (pwsh). Linux/Mac commands are similar.
 
-```bash
-# Create and activate virtual environment
-python -m venv ai-recommender-env
-ai-recommender-env\Scripts\Activate.ps1  # Windows
-# source ai-recommender-env/bin/activate  # Linux/Mac
+### 1. Create and activate a virtual environment
 
-# Install dependencies
-pip install -r requirements.txt
+```powershell
+# From the project root
+python -m venv .venv
+# Activate (PowerShell)
+. .venv\Scripts\Activate.ps1
+# If you get an execution policy error, run in an elevated pwsh:
+#   Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 ```
 
-### 2. Configure Environment
+Alternatively, you can skip activation and use the venv’s Python directly:
 
-Copy `.env.example` to `.env` and configure:
+```powershell
+& .venv\Scripts\python.exe -V
+```
+
+### 2. Install dependencies
+
+```powershell
+# If activated:
+pip install -r requirements.txt
+# Or without activation:
+& .venv\Scripts\python.exe -m pip install -r requirements.txt
+```
+
+### 3. Configure environment (.env)
+
+Create a `.env` file (or update your existing one) and set at least:
 
 ```bash
 # Database (use SQLite for development)
@@ -60,29 +76,102 @@ CHROMA_PERSIST_DIRECTORY=./data/chroma_db
 # ML Models
 SENTENCE_TRANSFORMER_MODEL=all-MiniLM-L6-v2
 
-# API
+# API / App
 SECRET_KEY=your-secret-key-here
 ENVIRONMENT=development
+PLATFORM_API_KEY=demo-api-key-123
 ```
 
-### 3. Initialize System
+### 4. Initialize data and run the server
 
-```bash
-# Check system health
-python run.py health
+```powershell
+# Health check
+& .venv\Scripts\python.exe run.py health
 
-# Generate sample data
-python run.py generate-data
+# Generate realistic sample data (developers, founders, investors, startups, positions)
+& .venv\Scripts\python.exe run.py generate-meaningful-data
 
 # Start the server
-python run.py server
+& .venv\Scripts\python.exe run.py server
 ```
 
-### 4. Access the API
+### 5. Use the demo and docs
 
-- **API Documentation**: http://localhost:8000/docs
-- **Health Check**: http://localhost:8000/health
-- **System Stats**: http://localhost:8000/api/v1/stats
+- Demo UI: http://localhost:8000/demo (enter API Key: `demo-api-key-123`)  
+- API Docs: http://localhost:8000/docs  
+- Health: http://localhost:8000/health  
+- Stats: http://localhost:8000/api/v1/stats
+
+### 6. Calling the Use-Case endpoints (2.7.1)
+
+All requests must include the header: `X-API-Key: demo-api-key-123` (or your configured key).
+
+- UC1 Founder → Developers
+```bash
+curl -X POST "http://localhost:8000/api/v1/uc/founder/developers" \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: demo-api-key-123" \
+  -d '{
+    "founder_id": 52,
+    "limit": 5,
+    "filters": { "skills": ["Python","Machine Learning"], "location": "San Francisco" }
+  }'
+```
+
+- UC3 Developer → Startups
+```bash
+curl -X POST "http://localhost:8000/api/v1/uc/developer/startups" \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: demo-api-key-123" \
+  -d '{ "developer_id": 1, "limit": 5 }'
+```
+
+- UC4 Investor → Startups
+```bash
+curl -X POST "http://localhost:8000/api/v1/uc/investor/startups" \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: demo-api-key-123" \
+  -d '{
+    "investor_id": 71,
+    "limit": 5,
+    "filters": { "stage": "Seed", "industry": ["AI/ML","HealthTech"] }
+  }'
+```
+
+- UC5 Trending (Non-personalized)
+```bash
+curl "http://localhost:8000/api/v1/uc/trending?item_type=startup&limit=5" \
+  -H "X-API-Key: demo-api-key-123"
+```
+
+- UC6 Feedback
+```bash
+# Explicit like
+curl -X POST "http://localhost:8000/api/v1/uc/feedback" \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: demo-api-key-123" \
+  -d '{ "user_id": 1, "item_type": "position", "item_id": 101, "feedback": "like", "rating": 5 }'
+
+# Implicit view
+curl -X POST "http://localhost:8000/api/v1/uc/feedback" \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: demo-api-key-123" \
+  -d '{ "user_id": 71, "item_type": "startup", "item_id": 15, "feedback": "view" }'
+```
+
+### 7. Frontend demo usage
+
+- Enter API Key (`demo-api-key-123` by default)
+- Select a User Type (Student/Developer, Founder/Entrepreneur, Investor)
+- Fill optional Preferences (skills, industry, stage, location, check sizes)
+- Click “Get Recommendations” → A clean ranked list is shown (no algorithm names)
+
+### 8. Notes & Troubleshooting
+
+- If activation fails in PowerShell, try: `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned` (in an elevated shell).  
+- If you prefer not to activate, always call the venv python directly: `& .venv\Scripts\python.exe ...`  
+- Default API key: `demo-api-key-123` (change via `PLATFORM_API_KEY` in `.env`).
+- Ensure data is generated (`generate-meaningful-data`) before testing recommendations.
 
 ## API Endpoints
 

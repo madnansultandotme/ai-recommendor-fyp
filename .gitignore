@@ -1,1 +1,3 @@
 ai-recommender-env
+__pycache__/
+*.pyc

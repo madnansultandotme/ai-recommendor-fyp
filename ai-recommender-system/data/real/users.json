@@ -1,0 +1,16 @@
+[
+  { "email": "ahmed.khan1@gmail.com", "user_type": "developer", "profile_data": {"skills": ["Python", "FastAPI", "PostgreSQL", "Docker"], "preferred_industries": ["SaaS", "AI/ML"], "preferred_roles": ["Backend Developer", "Full Stack Developer"], "experience_years": 5, "location": "London" }},
+  { "email": "james.smith2@outlook.com", "user_type": "developer", "profile_data": {"skills": ["React", "TypeScript", "Node.js"], "preferred_industries": ["E-commerce", "FinTech"], "preferred_roles": ["Frontend Developer"], "experience_years": 3, "location": "Toronto" }},
+  { "email": "muhammad.ali3@yahoo.com", "user_type": "developer", "profile_data": {"skills": ["Go", "Kubernetes", "AWS"], "preferred_industries": ["Cloud", "Analytics"], "preferred_roles": ["DevOps Engineer", "Platform Engineer"], "experience_years": 6, "location": "Seattle" }},
+  { "email": "oliver.wilson4@icloud.com", "user_type": "developer", "profile_data": {"skills": ["Python", "TensorFlow", "Pandas"], "preferred_industries": ["HealthTech", "AI/ML"], "preferred_roles": ["Data Scientist"], "experience_years": 4, "location": "Amsterdam" }},
+  { "email": "hamza.malik5@hotmail.com", "user_type": "developer", "profile_data": {"skills": ["Swift", "Kotlin", "GraphQL"], "preferred_industries": ["Mobility", "Social Media"], "preferred_roles": ["Mobile Developer"], "experience_years": 7, "location": "Remote" }},
+
+  { "email": "ahmed.khan6@proton.me", "user_type": "founder", "profile_data": {"interested_industries": ["AI/ML", "SaaS"], "required_skills": ["Python", "Machine Learning", "React"], "location": "London", "previous_experience": true }},
+  { "email": "henry.brown7@gmail.com", "user_type": "founder", "profile_data": {"interested_industries": ["HealthTech"], "required_skills": ["TensorFlow", "Data Science"], "location": "Toronto", "previous_experience": false }},
+  { "email": "yusuf.siddiqui8@outlook.com", "user_type": "founder", "profile_data": {"interested_industries": ["Blockchain", "FinTech"], "required_skills": ["Node.js", "React"], "location": "New York", "previous_experience": true }},
+  { "email": "oscar.harris9@yahoo.com", "user_type": "founder", "profile_data": {"interested_industries": ["EdTech", "AR/VR"], "required_skills": ["Unity", "Computer Vision"], "location": "Berlin", "previous_experience": true }},
+
+  { "email": "umar.ahmed10@live.com", "user_type": "investor", "profile_data": {"interested_industries": ["FinTech", "E-commerce"], "investment_stages": ["Seed", "Series A"], "check_size_min": 50000, "check_size_max": 1000000, "location": "Boston" }},
+  { "email": "arthur.wright11@icloud.com", "user_type": "investor", "profile_data": {"interested_industries": ["AI/ML", "HealthTech"], "investment_stages": ["Pre-Seed", "Seed"], "check_size_min": 25000, "check_size_max": 750000, "location": "London" }},
+  { "email": "bilal.qureshi12@gmail.com", "user_type": "investor", "profile_data": {"interested_industries": ["Blockchain", "Cloud"], "investment_stages": ["Seed", "Series B"], "check_size_min": 100000, "check_size_max": 2000000, "location": "Remote" }}
+]

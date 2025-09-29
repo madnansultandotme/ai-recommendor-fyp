@@ -5,6 +5,8 @@ This script creates realistic sample data for testing and development.
 
 import random
 import json
+import os
+from pathlib import Path
 from typing import List, Dict, Any
 from datetime import datetime, timedelta
 from database.database import get_db_context
@@ -32,6 +34,46 @@ SKILLS = [
     "Product Management", "System Design", "Microservices", "API Design"
 ]
 
+# Sample first/last names and email domains for more realistic emails
+MUSLIM_BOYS_FIRST = [
+    "Ahmed", "Muhammad", "Ali", "Hassan", "Hussein", "Omar", "Umar", "Usman", "Bilal",
+    "Zain", "Zayd", "Hamza", "Karim", "Tariq", "Faris", "Fahad", "Salman", "Suleman",
+    "Saad", "Nasser", "Idris", "Ismail", "Ibrahim", "Yusuf", "Musa", "Isa"
+]
+ENGLISH_BOYS_FIRST = [
+    "James", "Oliver", "William", "Jack", "Henry", "Thomas", "George", "Harry",
+    "Charlie", "Daniel", "Joseph", "Edward", "Samuel", "Benjamin", "Lucas", "Alexander",
+    "Oscar", "Leo", "Arthur", "Freddie", "Alfie", "Theo", "Max", "Harrison"
+]
+MUSLIM_LAST = [
+    "Khan", "Ali", "Ahmed", "Hussain", "Sheikh", "Iqbal", "Farooq", "Rahman", "Siddiqui",
+    "Malik", "Chaudhry", "Ansari", "Qureshi", "Nawaz"
+]
+ENGLISH_LAST = [
+    "Smith", "Johnson", "Brown", "Taylor", "Wilson", "Davies", "Evans", "Thomas",
+    "Roberts", "Walker", "Wright", "Thompson", "White", "Lewis", "Harris"
+]
+EMAIL_DOMAINS = [
+    "gmail.com", "outlook.com", "yahoo.com", "icloud.com", "hotmail.com", "proton.me", "live.com", "aol.com"
+]
+
+def _sanitize_local_part(s: str) -> str:
+    return ''.join(c for c in s.lower() if c.isalnum() or c in ['.', '_'])
+
+def _pick_name() -> (str, str):
+    if random.random() < 0.5:
+        first = random.choice(MUSLIM_BOYS_FIRST)
+        last = random.choice(MUSLIM_LAST)
+    else:
+        first = random.choice(ENGLISH_BOYS_FIRST)
+        last = random.choice(ENGLISH_LAST)
+    return first, last
+
+def _make_email(first: str, last: str, unique_num: int) -> str:
+    domain = random.choice(EMAIL_DOMAINS)
+    local = _sanitize_local_part(f"{first}.{last}{unique_num}")
+    return f"{local}@{domain}"
+
 ROLES = [
     "Backend Developer", "Frontend Developer", "Full Stack Developer", "ML Engineer",
     "Data Scientist", "DevOps Engineer", "Mobile Developer", "Software Architect",
@@ -52,14 +94,19 @@ def generate_users(n_developers: int = 50, n_founders: int = 20, n_investors: in
     """Generate sample users."""
     users = []
     
+    # We ensure unique emails by using a global increasing index across all user groups
+    offset = 0
+
     # Generate developers
     for i in range(n_developers):
         skills = random.sample(SKILLS, random.randint(3, 8))
         preferred_industries = random.sample(INDUSTRIES, random.randint(1, 4))
         preferred_roles = random.sample(ROLES, random.randint(1, 3))
+        first, last = _pick_name()
+        email = _make_email(first, last, unique_num=offset + i + 1)
         
         user = User(
-            email=f"developer{i+1}@example.com",
+            email=email,
             user_type="developer",
             profile_data={
                 "skills": skills,
@@ -71,13 +118,17 @@ def generate_users(n_developers: int = 50, n_founders: int = 20, n_investors: in
         )
         users.append(user)
     
+    offset += n_developers
+
     # Generate founders
     for i in range(n_founders):
         interested_industries = random.sample(INDUSTRIES, random.randint(1, 3))
         required_skills = random.sample(SKILLS, random.randint(2, 6))
+        first, last = _pick_name()
+        email = _make_email(first, last, unique_num=offset + i + 1)
         
         user = User(
-            email=f"founder{i+1}@example.com",
+            email=email,
             user_type="founder",
             profile_data={
                 "interested_industries": interested_industries,
@@ -88,13 +139,17 @@ def generate_users(n_developers: int = 50, n_founders: int = 20, n_investors: in
         )
         users.append(user)
     
+    offset += n_founders
+
     # Generate investors
     for i in range(n_investors):
         interested_industries = random.sample(INDUSTRIES, random.randint(2, 6))
         investment_stages = random.sample(INVESTMENT_STAGES, random.randint(1, 3))
+        first, last = _pick_name()
+        email = _make_email(first, last, unique_num=offset + i + 1)
         
         user = User(
-            email=f"investor{i+1}@example.com",
+            email=email,
             user_type="investor",
             profile_data={
                 "interested_industries": interested_industries,
@@ -254,6 +309,13 @@ def generate_realistic_startups() -> List[Dict[str, Any]]:
     ]
     return startups_data
 
+# Backward-compatible helper: extract only descriptions from the realistic startup pool
+def generate_startup_descriptions() -> List[str]:
+    """Return a list of realistic startup descriptions.
+    Sourced from generate_realistic_startups() to keep generate_startups simple.
+    """
+    return [s["description"] for s in generate_realistic_startups()]
+
 def generate_startups(founders: List[User]) -> List[Startup]:
     """Generate sample startups."""
     descriptions = generate_startup_descriptions()
@@ -329,6 +391,87 @@ def generate_positions(startups: List[Startup]) -> List[Position]:
             )
             positions.append(position)
     
+    return positions
+
+# Helpers to load real-world data from JSON files if present
+def load_json_array(path: Path) -> List[Dict[str, Any]]:
+    with path.open("r", encoding="utf-8") as f:
+        data = json.load(f)
+    if not isinstance(data, list):
+        raise ValueError(f"Expected a list in {path}, got {type(data).__name__}")
+    return data
+
+def load_real_users(data_dir: Path) -> List[User]:
+    path = data_dir / "users.json"
+    data = load_json_array(path)
+    users: List[User] = []
+    for item in data:
+        email = item.get("email")
+        user_type = item.get("user_type")
+        profile_data = item.get("profile_data", {})
+        if not email or not user_type:
+            logger.warning(f"Skipping user with missing fields: {item}")
+            continue
+        users.append(User(email=email, user_type=user_type, profile_data=profile_data))
+    return users
+
+def load_real_startups(data_dir: Path, founders_by_email: Dict[str, int]) -> List[Startup]:
+    path = data_dir / "startups.json"
+    data = load_json_array(path)
+    startups: List[Startup] = []
+    for item in data:
+        founder_email = item.get("founder_email")
+        name = item.get("name")
+        description = item.get("description", "")
+        metadata = item.get("startup_metadata", {}) or {}
+        if not founder_email or not name:
+            logger.warning(f"Skipping startup with missing founder_email or name: {item}")
+            continue
+        founder_id = founders_by_email.get(founder_email)
+        if not founder_id:
+            logger.warning(f"Skipping startup '{name}': founder email not found: {founder_email}")
+            continue
+        # Ensure reasonable defaults for optional fields
+        metadata.setdefault("industry", [])
+        metadata.setdefault("stage", random.choice(STARTUP_STAGES))
+        metadata.setdefault("tags", [])
+        metadata.setdefault("location", random.choice(LOCATIONS))
+        metadata.setdefault("team_size", random.randint(2, 50))
+        metadata.setdefault("funding_amount", random.randint(50000, 5000000))
+        if "required_skills" not in metadata:
+            metadata["required_skills"] = random.sample(SKILLS, 4)
+        startups.append(Startup(
+            founder_id=founder_id,
+            name=name,
+            description=description,
+            startup_metadata=metadata
+        ))
+    return startups
+
+def load_real_positions(data_dir: Path, startups_by_name: Dict[str, int]) -> List[Position]:
+    path = data_dir / "positions.json"
+    if not path.exists():
+        return []
+    data = load_json_array(path)
+    positions: List[Position] = []
+    for item in data:
+        startup_name = item.get("startup_name")
+        title = item.get("title")
+        description = item.get("description", "")
+        requirements = item.get("requirements", {}) or {}
+        if not startup_name or not title:
+            logger.warning(f"Skipping position with missing startup_name or title: {item}")
+            continue
+        startup_id = startups_by_name.get(startup_name)
+        if not startup_id:
+            logger.warning(f"Skipping position '{title}': unknown startup_name '{startup_name}'")
+            continue
+        positions.append(Position(
+            startup_id=startup_id,
+            title=title,
+            description=description,
+            requirements=requirements
+        ))
     return positions
 
 def generate_interactions(users: List[User], startups: List[Startup], positions: List[Position]):
@@ -465,22 +608,44 @@ def main():
             db.query(Startup).delete()
             db.query(User).delete()
             
-            # Generate users
-            logger.info("Generating users...")
-            users = generate_users(n_developers=50, n_founders=20, n_investors=10)
+            # Determine real data directory (optional)
+            data_dir = Path(os.getenv("REAL_DATA_DIR", "data/real"))
+
+            # Generate or load users
+            users_path = data_dir / "users.json"
+            if users_path.exists():
+                logger.info(f"Loading real users from {users_path}")
+                users = load_real_users(data_dir)
+            else:
+                logger.info("Generating users...")
+                users = generate_users(n_developers=50, n_founders=20, n_investors=10)
             db.add_all(users)
             db.flush()  # Get user IDs
             
-            # Generate startups (only for founders)
-            logger.info("Generating startups...")
+            # Generate or load startups (only for founders)
             founders = [u for u in users if u.user_type == "founder"]
-            startups = generate_startups(founders)
+            startups_path = data_dir / "startups.json"
+            if startups_path.exists():
+                logger.info(f"Loading real startups from {startups_path}")
+                founders_by_email = {u.email: u.user_id for u in founders}
+                startups = load_real_startups(data_dir, founders_by_email)
+            else:
+                logger.info("Generating startups...")
+                startups = generate_startups(founders)
             db.add_all(startups)
             db.flush()  # Get startup IDs
             
-            # Generate positions
-            logger.info("Generating positions...")
-            positions = generate_positions(startups)
+            # Generate or load positions
+            positions_path = data_dir / "positions.json"
+            if positions_path.exists():
+                logger.info(f"Loading real positions from {positions_path}")
+                startups_by_name = {s.name: s.startup_id for s in startups}
+                positions = load_real_positions(data_dir, startups_by_name)
+                if not positions:
+                    positions = generate_positions(startups)
+            else:
+                logger.info("Generating positions...")
+                positions = generate_positions(startups)
             db.add_all(positions)
             db.flush()  # Get position IDs
             

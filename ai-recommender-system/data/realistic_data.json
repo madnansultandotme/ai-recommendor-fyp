@@ -1,0 +1,449 @@
+{
+  "users": [
+    {
+      "user_id": 1,
+      "email": "alex.chen@email.com",
+      "user_type": "developer",
+      "profile_data": {
+        "name": "Alex Chen",
+        "bio": "Full-stack developer with 5 years experience in AI/ML and web development",
+        "skills": ["Python", "JavaScript", "React", "Machine Learning", "TensorFlow", "Docker", "AWS"],
+        "experience_years": 5,
+        "location": "San Francisco, CA",
+        "preferred_industries": ["AI/ML", "HealthTech", "FinTech"],
+        "preferred_roles": ["Senior Developer", "ML Engineer", "Tech Lead"],
+        "salary_expectation": 120000,
+        "remote_preference": "hybrid"
+      }
+    },
+    {
+      "user_id": 2,
+      "email": "sarah.johnson@email.com",
+      "user_type": "developer",
+      "profile_data": {
+        "name": "Sarah Johnson",
+        "bio": "Frontend specialist with expertise in modern web technologies and UX design",
+        "skills": ["React", "TypeScript", "Vue.js", "CSS", "Node.js", "GraphQL", "Figma"],
+        "experience_years": 4,
+        "location": "New York, NY",
+        "preferred_industries": ["E-commerce", "EdTech", "SaaS"],
+        "preferred_roles": ["Frontend Developer", "UI/UX Developer", "Product Engineer"],
+        "salary_expectation": 100000,
+        "remote_preference": "remote"
+      }
+    },
+    {
+      "user_id": 3,
+      "email": "michael.torres@email.com",
+      "user_type": "developer",
+      "profile_data": {
+        "name": "Michael Torres",
+        "bio": "Backend engineer specializing in scalable systems and data architecture",
+        "skills": ["Java", "Spring Boot", "PostgreSQL", "Kubernetes", "Microservices", "Redis", "Kafka"],
+        "experience_years": 6,
+        "location": "Austin, TX",
+        "preferred_industries": ["FinTech", "Enterprise Software", "Cloud Infrastructure"],
+        "preferred_roles": ["Backend Engineer", "System Architect", "DevOps Engineer"],
+        "salary_expectation": 130000,
+        "remote_preference": "on-site"
+      }
+    },
+    {
+      "user_id": 4,
+      "email": "emma.davis@email.com",
+      "user_type": "developer",
+      "profile_data": {
+        "name": "Emma Davis",
+        "bio": "Mobile app developer with expertise in cross-platform development",
+        "skills": ["React Native", "Swift", "Kotlin", "Flutter", "Firebase", "iOS", "Android"],
+        "experience_years": 3,
+        "location": "Seattle, WA",
+        "preferred_industries": ["Consumer Apps", "Gaming", "Social Media"],
+        "preferred_roles": ["Mobile Developer", "iOS Developer", "React Native Developer"],
+        "salary_expectation": 95000,
+        "remote_preference": "hybrid"
+      }
+    },
+    {
+      "user_id": 5,
+      "email": "david.kim@email.com",
+      "user_type": "developer",
+      "profile_data": {
+        "name": "David Kim",
+        "bio": "Data scientist and ML engineer focused on computer vision and NLP",
+        "skills": ["Python", "PyTorch", "Computer Vision", "NLP", "Data Science", "MLOps", "Jupyter"],
+        "experience_years": 4,
+        "location": "Boston, MA",
+        "preferred_industries": ["AI/ML", "Healthcare", "Research"],
+        "preferred_roles": ["Data Scientist", "ML Engineer", "Research Engineer"],
+        "salary_expectation": 125000,
+        "remote_preference": "remote"
+      }
+    },
+    {
+      "user_id": 6,
+      "email": "jessica.martinez@email.com",
+      "user_type": "founder",
+      "profile_data": {
+        "name": "Jessica Martinez",
+        "bio": "Serial entrepreneur with background in FinTech and previous successful exit",
+        "company": "FinanceFlow Solutions",
+        "industry_expertise": ["FinTech", "Payments", "B2B SaaS"],
+        "previous_experience": ["Goldman Sachs", "Square", "Stripe"],
+        "location": "San Francisco, CA",
+        "seeking_skills": ["Backend Engineering", "DevOps", "Product Management"],
+        "funding_stage": "Seed",
+        "team_size": 3
+      }
+    },
+    {
+      "user_id": 7,
+      "email": "robert.wilson@email.com",
+      "user_type": "founder",
+      "profile_data": {
+        "name": "Robert Wilson",
+        "bio": "Healthcare entrepreneur building AI-powered diagnostic tools",
+        "company": "MedAI Diagnostics",
+        "industry_expertise": ["HealthTech", "AI/ML", "Medical Devices"],
+        "previous_experience": ["Johns Hopkins", "Philips Healthcare", "IBM Watson"],
+        "location": "Cambridge, MA",
+        "seeking_skills": ["Machine Learning", "Computer Vision", "Regulatory Affairs"],
+        "funding_stage": "Series A",
+        "team_size": 12
+      }
+    },
+    {
+      "user_id": 8,
+      "email": "lisa.thompson@email.com",
+      "user_type": "founder",
+      "profile_data": {
+        "name": "Lisa Thompson",
+        "bio": "EdTech founder passionate about personalized learning experiences",
+        "company": "LearnSmart Platform",
+        "industry_expertise": ["EdTech", "AI/ML", "Consumer Apps"],
+        "previous_experience": ["Khan Academy", "Coursera", "Google"],
+        "location": "Palo Alto, CA",
+        "seeking_skills": ["Frontend Development", "Mobile Development", "Data Science"],
+        "funding_stage": "Pre-Seed",
+        "team_size": 5
+      }
+    },
+    {
+      "user_id": 9,
+      "email": "james.anderson@email.com",
+      "user_type": "founder",
+      "profile_data": {
+        "name": "James Anderson",
+        "bio": "Climate tech entrepreneur developing sustainable energy solutions",
+        "company": "GreenEnergy Innovations",
+        "industry_expertise": ["CleanTech", "Energy", "IoT"],
+        "previous_experience": ["Tesla", "SolarCity", "GE Renewable Energy"],
+        "location": "Denver, CO",
+        "seeking_skills": ["IoT Development", "Data Engineering", "Hardware Integration"],
+        "funding_stage": "Seed",
+        "team_size": 8
+      }
+    },
+    {
+      "user_id": 10,
+      "email": "maria.garcia@email.com",
+      "user_type": "investor",
+      "profile_data": {
+        "name": "Maria Garcia",
+        "bio": "Early-stage VC focused on AI/ML and enterprise software investments",
+        "firm": "TechVentures Capital",
+        "location": "Menlo Park, CA",
+        "interested_industries": ["AI/ML", "Enterprise Software", "Developer Tools"],
+        "investment_stages": ["Pre-Seed", "Seed"],
+        "check_size_min": 100000,
+        "check_size_max": 2000000,
+        "portfolio_companies": ["DataFlow", "MLOps Co", "DevTools Inc"],
+        "investment_thesis": "AI-first companies solving enterprise problems"
+      }
+    },
+    {
+      "user_id": 11,
+      "email": "william.brown@email.com",
+      "user_type": "investor",
+      "profile_data": {
+        "name": "William Brown",
+        "bio": "Healthcare investor with medical background and 15 years of investment experience",
+        "firm": "HealthTech Ventures",
+        "location": "Boston, MA",
+        "interested_industries": ["HealthTech", "BioTech", "Medical Devices"],
+        "investment_stages": ["Seed", "Series A"],
+        "check_size_min": 500000,
+        "check_size_max": 5000000,
+        "portfolio_companies": ["MedDevice Co", "BioTech Solutions", "Health AI"],
+        "investment_thesis": "Digital health solutions improving patient outcomes"
+      }
+    },
+    {
+      "user_id": 12,
+      "email": "jennifer.lee@email.com",
+      "user_type": "investor",
+      "profile_data": {
+        "name": "Jennifer Lee",
+        "bio": "Consumer-focused investor backing the next generation of mobile apps",
+        "firm": "Mobile First Partners",
+        "location": "Los Angeles, CA",
+        "interested_industries": ["Consumer Apps", "Gaming", "Social Media", "E-commerce"],
+        "investment_stages": ["Pre-Seed", "Seed", "Series A"],
+        "check_size_min": 250000,
+        "check_size_max": 3000000,
+        "portfolio_companies": ["SocialApp", "GameStudio", "ShopEasy"],
+        "investment_thesis": "Mobile-first consumer experiences with viral potential"
+      }
+    }
+  ],
+  "startups": [
+    {
+      "startup_id": 1,
+      "name": "CodeFlow AI",
+      "founder_id": 6,
+      "startup_metadata": {
+        "description": "AI-powered code review and optimization platform for development teams",
+        "industry": ["AI/ML", "Developer Tools", "Enterprise Software"],
+        "stage": "Seed",
+        "team_size": 8,
+        "location": "San Francisco, CA",
+        "funding_amount": 2000000,
+        "required_skills": ["Python", "Machine Learning", "React", "DevOps"],
+        "tech_stack": ["Python", "TensorFlow", "React", "PostgreSQL", "Docker"],
+        "market_size": "12B",
+        "business_model": "B2B SaaS",
+        "competitors": ["GitHub Copilot", "DeepCode", "Codacy"],
+        "growth_metrics": {
+          "monthly_recurring_revenue": 50000,
+          "customer_count": 120,
+          "growth_rate": 15
+        }
+      }
+    },
+    {
+      "startup_id": 2,
+      "name": "HealthLink Pro",
+      "founder_id": 7,
+      "startup_metadata": {
+        "description": "Telemedicine platform connecting patients with specialists worldwide",
+        "industry": ["HealthTech", "Telemedicine", "AI/ML"],
+        "stage": "Series A",
+        "team_size": 25,
+        "location": "Cambridge, MA",
+        "funding_amount": 8000000,
+        "required_skills": ["React", "Node.js", "HIPAA Compliance", "Machine Learning"],
+        "tech_stack": ["React", "Node.js", "MongoDB", "WebRTC", "TensorFlow"],
+        "market_size": "350B",
+        "business_model": "B2C Subscription",
+        "competitors": ["Teladoc", "Amwell", "MDLive"],
+        "growth_metrics": {
+          "monthly_active_users": 45000,
+          "revenue_per_user": 89,
+          "growth_rate": 25
+        }
+      }
+    },
+    {
+      "startup_id": 3,
+      "name": "EduSmart Analytics",
+      "founder_id": 8,
+      "startup_metadata": {
+        "description": "Personalized learning analytics platform for K-12 education",
+        "industry": ["EdTech", "AI/ML", "Analytics"],
+        "stage": "Pre-Seed",
+        "team_size": 6,
+        "location": "Palo Alto, CA",
+        "funding_amount": 500000,
+        "required_skills": ["Python", "Data Science", "React", "Educational Psychology"],
+        "tech_stack": ["Python", "Django", "React", "PostgreSQL", "scikit-learn"],
+        "market_size": "89B",
+        "business_model": "B2B SaaS",
+        "competitors": ["DreamBox", "Khan Academy", "IXL Learning"],
+        "growth_metrics": {
+          "pilot_schools": 15,
+          "students_impacted": 3500,
+          "growth_rate": 40
+        }
+      }
+    },
+    {
+      "startup_id": 4,
+      "name": "CleanEnergy Monitor",
+      "founder_id": 9,
+      "startup_metadata": {
+        "description": "IoT-powered energy monitoring and optimization for commercial buildings",
+        "industry": ["CleanTech", "IoT", "Enterprise Software"],
+        "stage": "Seed",
+        "team_size": 12,
+        "location": "Denver, CO",
+        "funding_amount": 3500000,
+        "required_skills": ["IoT", "Python", "Data Engineering", "Hardware Integration"],
+        "tech_stack": ["Python", "InfluxDB", "Grafana", "MQTT", "React"],
+        "market_size": "23B",
+        "business_model": "B2B Hardware + SaaS",
+        "competitors": ["Schneider Electric", "Honeywell", "Johnson Controls"],
+        "growth_metrics": {
+          "buildings_monitored": 280,
+          "energy_saved_kwh": 2500000,
+          "growth_rate": 35
+        }
+      }
+    },
+    {
+      "startup_id": 5,
+      "name": "FinSecure Vault",
+      "founder_id": 6,
+      "startup_metadata": {
+        "description": "Blockchain-based secure document storage for financial institutions",
+        "industry": ["FinTech", "Blockchain", "Enterprise Security"],
+        "stage": "Seed",
+        "team_size": 10,
+        "location": "New York, NY",
+        "funding_amount": 4000000,
+        "required_skills": ["Blockchain", "Node.js", "Security", "React"],
+        "tech_stack": ["Node.js", "Ethereum", "IPFS", "React", "MongoDB"],
+        "market_size": "67B",
+        "business_model": "B2B SaaS",
+        "competitors": ["DocuSign", "Box", "Dropbox Business"],
+        "growth_metrics": {
+          "enterprise_clients": 45,
+          "documents_secured": 1200000,
+          "growth_rate": 28
+        }
+      }
+    },
+    {
+      "startup_id": 6,
+      "name": "GameForge Studio",
+      "founder_id": 8,
+      "startup_metadata": {
+        "description": "No-code game development platform for indie developers",
+        "industry": ["Gaming", "Developer Tools", "Consumer Apps"],
+        "stage": "Pre-Seed",
+        "team_size": 4,
+        "location": "Austin, TX",
+        "funding_amount": 300000,
+        "required_skills": ["Game Development", "React", "WebGL", "Unity"],
+        "tech_stack": ["React", "WebGL", "Node.js", "Unity", "PostgreSQL"],
+        "market_size": "180B",
+        "business_model": "Freemium + Marketplace",
+        "competitors": ["Unity", "Unreal Engine", "GameMaker"],
+        "growth_metrics": {
+          "registered_developers": 2800,
+          "games_created": 450,
+          "growth_rate": 60
+        }
+      }
+    }
+  ],
+  "positions": [
+    {
+      "position_id": 1,
+      "startup_id": 1,
+      "title": "Senior ML Engineer",
+      "description": "Lead machine learning initiatives for our AI-powered code review platform",
+      "requirements": {
+        "skills": ["Python", "Machine Learning", "TensorFlow", "MLOps"],
+        "experience_years": 4,
+        "education": "Bachelor's in Computer Science or related field"
+      },
+      "salary_range": {
+        "min": 120000,
+        "max": 160000
+      },
+      "equity": "0.5-1.2%",
+      "remote_ok": true,
+      "location": "San Francisco, CA"
+    },
+    {
+      "position_id": 2,
+      "startup_id": 1,
+      "title": "Frontend Engineer",
+      "description": "Build intuitive user interfaces for developer tools",
+      "requirements": {
+        "skills": ["React", "TypeScript", "CSS", "JavaScript"],
+        "experience_years": 3,
+        "education": "Bachelor's degree preferred"
+      },
+      "salary_range": {
+        "min": 100000,
+        "max": 130000
+      },
+      "equity": "0.2-0.8%",
+      "remote_ok": true,
+      "location": "San Francisco, CA"
+    },
+    {
+      "position_id": 3,
+      "startup_id": 2,
+      "title": "Healthcare Software Engineer",
+      "description": "Develop HIPAA-compliant telemedicine solutions",
+      "requirements": {
+        "skills": ["Node.js", "React", "HIPAA Compliance", "WebRTC"],
+        "experience_years": 3,
+        "education": "Bachelor's in Computer Science"
+      },
+      "salary_range": {
+        "min": 110000,
+        "max": 140000
+      },
+      "equity": "0.1-0.5%",
+      "remote_ok": false,
+      "location": "Cambridge, MA"
+    },
+    {
+      "position_id": 4,
+      "startup_id": 3,
+      "title": "EdTech Data Scientist",
+      "description": "Build personalized learning algorithms for K-12 students",
+      "requirements": {
+        "skills": ["Python", "Data Science", "Machine Learning", "Statistics"],
+        "experience_years": 2,
+        "education": "Master's in Data Science or related field"
+      },
+      "salary_range": {
+        "min": 90000,
+        "max": 120000
+      },
+      "equity": "0.5-1.5%",
+      "remote_ok": true,
+      "location": "Palo Alto, CA"
+    },
+    {
+      "position_id": 5,
+      "startup_id": 4,
+      "title": "IoT Systems Engineer",
+      "description": "Develop IoT solutions for energy monitoring systems",
+      "requirements": {
+        "skills": ["Python", "IoT", "Data Engineering", "Hardware Integration"],
+        "experience_years": 4,
+        "education": "Bachelor's in Electrical Engineering or Computer Science"
+      },
+      "salary_range": {
+        "min": 105000,
+        "max": 135000
+      },
+      "equity": "0.3-0.9%",
+      "remote_ok": false,
+      "location": "Denver, CO"
+    },
+    {
+      "position_id": 6,
+      "startup_id": 5,
+      "title": "Blockchain Developer",
+      "description": "Build secure blockchain solutions for financial document storage",
+      "requirements": {
+        "skills": ["Blockchain", "Node.js", "Ethereum", "Security"],
+        "experience_years": 3,
+        "education": "Bachelor's in Computer Science"
+      },
+      "salary_range": {
+        "min": 115000,
+        "max": 145000
+      },
+      "equity": "0.4-1.0%",
+      "remote_ok": true,
+      "location": "New York, NY"
+    }
+  ]
+}
