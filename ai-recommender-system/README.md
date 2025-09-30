@@ -88,11 +88,18 @@ PLATFORM_API_KEY=demo-api-key-123
 # Health check
 & .venv\Scripts\python.exe run.py health
 
-# Generate realistic sample data (developers, founders, investors, startups, positions)
+# Option A: generate synthetic-but-meaningful sample data
 & .venv\Scripts\python.exe run.py generate-meaningful-data
+
+# Option B: load the curated realistic demo dataset (recommended for presentations)
+#   This now seeds investors, founders, startups, roles, and trending engagement signals
+& .venv\Scripts\python.exe scripts\populate_realistic_data.py
 
 # Start the server
 & .venv\Scripts\python.exe run.py server
+
+# (Optional) run the fast regression tests for the API showcase
+& .venv\Scripts\python.exe -m pytest ai-recommender-system/test_api.py
 ```
 
 ### 5. Use the demo and docs
@@ -106,19 +113,19 @@ PLATFORM_API_KEY=demo-api-key-123
 
 All requests must include the header: `X-API-Key: demo-api-key-123` (or your configured key).
 
-- UC1 Founder → Developers
+- UC1 Founder → Developers *(returns enriched developer cards with name, location, skills)*
 ```bash
 curl -X POST "http://localhost:8000/api/v1/uc/founder/developers" \
   -H "Content-Type: application/json" \
   -H "X-API-Key: demo-api-key-123" \
   -d '{
-    "founder_id": 52,
+    "founder_id": 6,
     "limit": 5,
     "filters": { "skills": ["Python","Machine Learning"], "location": "San Francisco" }
   }'
 ```
 
-- UC3 Developer → Startups
+- UC3 Developer → Startups *(returns startup insights like stage, team size, funding)*
 ```bash
 curl -X POST "http://localhost:8000/api/v1/uc/developer/startups" \
   -H "Content-Type: application/json" \
@@ -126,19 +133,19 @@ curl -X POST "http://localhost:8000/api/v1/uc/developer/startups" \
   -d '{ "developer_id": 1, "limit": 5 }'
 ```
 
-- UC4 Investor → Startups
+- UC4 Investor → Startups *(returns scored matches with industries, stage, funding and match reasons)*
 ```bash
 curl -X POST "http://localhost:8000/api/v1/uc/investor/startups" \
   -H "Content-Type: application/json" \
   -H "X-API-Key: demo-api-key-123" \
   -d '{
-    "investor_id": 71,
+    "investor_id": 10,
     "limit": 5,
     "filters": { "stage": "Seed", "industry": ["AI/ML","HealthTech"] }
   }'
 ```
 
-- UC5 Trending (Non-personalized)
+- UC5 Trending (Non-personalized) *(now powered by curated implicit feedback events)*
 ```bash
 curl "http://localhost:8000/api/v1/uc/trending?item_type=startup&limit=5" \
   -H "X-API-Key: demo-api-key-123"
@@ -172,6 +179,13 @@ curl -X POST "http://localhost:8000/api/v1/uc/feedback" \
 - If you prefer not to activate, always call the venv python directly: `& .venv\Scripts\python.exe ...`  
 - Default API key: `demo-api-key-123` (change via `PLATFORM_API_KEY` in `.env`).
 - Ensure data is generated (`generate-meaningful-data`) before testing recommendations.
+
+### 9. Latest updates (2025-09-30)
+
+- Realistic dataset now seeds investor/startup interaction footprints to drive the `/api/v1/uc/trending` endpoint.
+- Recommendation payloads include human-friendly metadata (names, locations, salary ranges, funding, skills) to enhance demos.
+- Added regression tests covering use-case endpoints so you can trust the responses before presenting: `pytest ai-recommender-system/test_api.py`.
+- `/api/v1/uc/investor/startups` responses now surface match reasons and startup summaries for slide-ready storytelling.
 
 ## API Endpoints
 

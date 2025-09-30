@@ -1,6 +1,7 @@
 import time
 import uuid
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import List, Dict, Any, Optional
 
 from fastapi import FastAPI, HTTPException, Depends, Query, Header
@@ -29,6 +30,10 @@ from sqlalchemy import func
 
 # Helper: normalize user type aliases coming from UI (e.g., 'student', 'entrepreneur')
 ALLOWED_USER_TYPES = {"developer", "founder", "investor"}
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+STATIC_DIR = BASE_DIR / "static"
+INDEX_FILE = STATIC_DIR / "index.html"
 
 def normalize_user_type(user_type: str) -> str:
     if not user_type:
@@ -92,7 +97,8 @@ app.add_middleware(
 )
 
 # Mount static files
-app.mount("/static", StaticFiles(directory="static"), name="static")
+if STATIC_DIR.exists():
+    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 # Pydantic models for API
 # API Key dependency
@@ -129,7 +135,9 @@ class UCRecommendationsResponse(BaseModel):
 @app.get("/demo", tags=["UI"])
 async def demo_ui():
     """Serve the demo web UI."""
-    return FileResponse("static/index.html")
+    if not INDEX_FILE.exists():
+        raise HTTPException(status_code=404, detail="Static demo UI not found")
+    return FileResponse(str(INDEX_FILE))
 
 # API Endpoints
 @app.get("/", tags=["Root"])
@@ -922,12 +930,16 @@ async def uc_investor_startups(request: UCInvestorStartupsRequest, db: Session =
     if startup_ids:
         rows = db.query(Startup).filter(Startup.startup_id.in_(startup_ids)).all()
         for s in rows:
+            meta = s.startup_metadata or {}
             s_map[s.startup_id] = {
                 "startup_id": s.startup_id,
                 "name": s.name,
-                "stage": (s.startup_metadata or {}).get("stage"),
-                "industry": (s.startup_metadata or {}).get("industry", []),
-                "location": (s.startup_metadata or {}).get("location"),
+                "stage": meta.get("stage"),
+                "industry": meta.get("industry", []),
+                "location": meta.get("location"),
+                "team_size": meta.get("team_size"),
+                "funding_amount": meta.get("funding_amount"),
+                "required_skills": meta.get("required_skills", []),
             }
 
     recs = []
@@ -935,11 +947,15 @@ async def uc_investor_startups(request: UCInvestorStartupsRequest, db: Session =
     for r in results:
         if r.item_type != "startup":
             continue
-        recs.append({
-            **s_map.get(r.item_id, {"startup_id": r.item_id, "name": f"Startup #{r.item_id}"}),
+        startup_data = s_map.get(r.item_id, {"startup_id": r.item_id, "name": f"Startup #{r.item_id}"})
+        rec = {
+            **startup_data,
             "score": round(float(r.score), 4),
-            "rank": rank
-        })
+            "rank": rank,
+        }
+        if r.match_reasons:
+            rec["match_reasons"] = r.match_reasons
+        recs.append(rec)
         rank += 1
     return {"recommendations": recs}
 
@@ -958,21 +974,31 @@ async def uc_trending(limit: int = 10, item_type: Optional[str] = None, db: Sess
         if row.item_type == 'startup':
             s = db.query(Startup).filter(Startup.startup_id == row.item_id).first()
             if s:
+                meta = s.startup_metadata or {}
                 recs.append({
                     "startup_id": s.startup_id,
                     "name": s.name,
-                    "stage": (s.startup_metadata or {}).get("stage"),
-                    "industry": (s.startup_metadata or {}).get("industry", []),
+                    "stage": meta.get("stage"),
+                    "industry": meta.get("industry", []),
+                    "location": meta.get("location"),
+                    "team_size": meta.get("team_size"),
                     "popularity": int(row.cnt),
                     "rank": idx + 1
                 })
         elif row.item_type == 'position':
             p = db.query(Position).filter(Position.position_id == row.item_id).first()
             if p:
+                startup = p.startup
+                requirements = p.requirements or {}
                 recs.append({
                     "position_id": p.position_id,
                     "title": p.title,
                     "startup_id": p.startup_id,
+                    "startup_name": startup.name if startup else None,
+                    "location": requirements.get("location"),
+                    "remote_ok": requirements.get("remote_ok"),
+                    "salary_range": requirements.get("salary_range"),
+                    "equity": requirements.get("equity"),
                     "popularity": int(row.cnt),
                     "rank": idx + 1
                 })

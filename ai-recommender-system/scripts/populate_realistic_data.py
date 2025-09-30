@@ -11,7 +11,7 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from database.database import get_db_context
-from database.models import User, Startup, Position
+from database.models import User, Startup, Position, ImplicitFeedback
 
 def load_data():
     """Load data from JSON file."""
@@ -28,6 +28,7 @@ def clear_existing_data(db):
     print("🗑️  Clearing existing data...")
     
     # Delete in reverse order due to foreign keys
+    db.query(ImplicitFeedback).delete()
     db.query(Position).delete()
     db.query(Startup).delete() 
     db.query(User).delete()
@@ -56,11 +57,18 @@ def populate_startups(db, startups_data):
     print("🚀 Populating startups...")
     
     for startup_data in startups_data:
+        metadata = startup_data.get("startup_metadata", {})
+        description = startup_data.get("description") or metadata.get("description")
+
+        if not description:
+            raise ValueError(f"Startup {startup_data['name']} is missing a description")
+
         startup = Startup(
             startup_id=startup_data["startup_id"],
             name=startup_data["name"],
             founder_id=startup_data["founder_id"],
-            startup_metadata=startup_data["startup_metadata"]
+            description=description,
+            startup_metadata=metadata
         )
         db.add(startup)
     
@@ -72,21 +80,48 @@ def populate_positions(db, positions_data):
     print("💼 Populating positions...")
     
     for position_data in positions_data:
+        requirements = dict(position_data.get("requirements", {}))
+        if position_data.get("salary_range"):
+            requirements["salary_range"] = position_data["salary_range"]
+        if position_data.get("equity"):
+            requirements["equity"] = position_data["equity"]
+        if position_data.get("remote_ok") is not None:
+            requirements["remote_ok"] = position_data["remote_ok"]
+        if position_data.get("location"):
+            requirements["location"] = position_data["location"]
+
         position = Position(
             position_id=position_data["position_id"],
             startup_id=position_data["startup_id"],
             title=position_data["title"],
             description=position_data["description"],
-            requirements=position_data["requirements"],
-            salary_range=position_data["salary_range"],
-            equity=position_data["equity"],
-            remote_ok=position_data["remote_ok"],
-            location=position_data["location"]
+            requirements=requirements
         )
         db.add(position)
     
     db.commit()
     print(f"✅ Added {len(positions_data)} positions")
+
+
+def populate_implicit_feedback(db, feedback_data):
+    """Populate implicit feedback table for trending use cases."""
+    if not feedback_data:
+        print("ℹ️ No implicit feedback entries provided")
+        return
+
+    print("📈 Populating implicit feedback events...")
+
+    for event in feedback_data:
+        feedback = ImplicitFeedback(
+            user_id=event["user_id"],
+            item_type=event["item_type"],
+            item_id=event["item_id"],
+            event_type=event.get("event_type", "view")
+        )
+        db.add(feedback)
+
+    db.commit()
+    print(f"✅ Added {len(feedback_data)} implicit feedback events")
 
 def verify_data(db):
     """Verify the populated data."""
@@ -95,10 +130,12 @@ def verify_data(db):
     user_count = db.query(User).count()
     startup_count = db.query(Startup).count()
     position_count = db.query(Position).count()
+    feedback_count = db.query(ImplicitFeedback).count()
     
     print(f"  Users: {user_count}")
     print(f"  Startups: {startup_count}")
     print(f"  Positions: {position_count}")
+    print(f"  Implicit feedback events: {feedback_count}")
     
     # Show some sample data
     print("\n📋 Sample data:")
@@ -135,6 +172,7 @@ def main():
             populate_users(db, data["users"])
             populate_startups(db, data["startups"])
             populate_positions(db, data["positions"])
+            populate_implicit_feedback(db, data.get("implicit_feedback", []))
             
             # Verify
             verify_data(db)

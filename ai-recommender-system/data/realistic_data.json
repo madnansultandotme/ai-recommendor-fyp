@@ -445,5 +445,85 @@
       "remote_ok": true,
       "location": "New York, NY"
     }
+  ],
+  "implicit_feedback": [
+    {
+      "user_id": 10,
+      "item_type": "startup",
+      "item_id": 1,
+      "event_type": "view"
+    },
+    {
+      "user_id": 11,
+      "item_type": "startup",
+      "item_id": 1,
+      "event_type": "click"
+    },
+    {
+      "user_id": 12,
+      "item_type": "startup",
+      "item_id": 1,
+      "event_type": "save"
+    },
+    {
+      "user_id": 10,
+      "item_type": "startup",
+      "item_id": 2,
+      "event_type": "view"
+    },
+    {
+      "user_id": 11,
+      "item_type": "startup",
+      "item_id": 2,
+      "event_type": "view"
+    },
+    {
+      "user_id": 12,
+      "item_type": "startup",
+      "item_id": 3,
+      "event_type": "view"
+    },
+    {
+      "user_id": 1,
+      "item_type": "position",
+      "item_id": 1,
+      "event_type": "view"
+    },
+    {
+      "user_id": 2,
+      "item_type": "position",
+      "item_id": 1,
+      "event_type": "click"
+    },
+    {
+      "user_id": 3,
+      "item_type": "position",
+      "item_id": 1,
+      "event_type": "save"
+    },
+    {
+      "user_id": 2,
+      "item_type": "position",
+      "item_id": 2,
+      "event_type": "view"
+    },
+    {
+      "user_id": 4,
+      "item_type": "position",
+      "item_id": 2,
+      "event_type": "click"
+    },
+    {
+      "user_id": 5,
+      "item_type": "position",
+      "item_id": 3,
+      "event_type": "view"
+    },
+    {
+      "user_id": 1,
+      "item_type": "position",
+      "item_id": 6,
+      "event_type": "view"
+    }
   ]
 }
