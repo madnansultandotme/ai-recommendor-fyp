@@ -3,10 +3,10 @@
 Test script for the Two-Tower Neural Network implementation.
 This script tests the basic functionality without requiring a full database setup.
 """
-import asyncio
 import torch
 import numpy as np
 import pandas as pd
+import pytest
 from models.two_tower import TwoTowerModel, TwoTowerDataset
 import logging
 
@@ -14,7 +14,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-async def test_two_tower_model():
+def test_two_tower_model():
     """Test the Two-Tower model architecture."""
     logger.info("Testing Two-Tower model architecture...")
     
@@ -76,9 +76,11 @@ async def test_two_tower_model():
     
     logger.info("✅ Two-Tower model architecture test completed successfully!")
     
-    return True
+    assert predictions.shape == labels.shape
+    assert user_embeddings.shape[0] == batch_size
+    assert item_embeddings.shape[0] == batch_size
 
-async def test_feature_extraction():
+def test_feature_extraction():
     """Test feature extraction functions."""
     logger.info("Testing feature extraction...")
     
@@ -131,9 +133,10 @@ async def test_feature_extraction():
     
     logger.info("✅ Feature extraction test completed successfully!")
     
-    return True
+    assert len(user_features) > 0
+    assert len(startup_features) > 0
 
-async def test_training_data_preparation():
+def test_training_data_preparation():
     """Test training data preparation."""
     logger.info("Testing training data preparation...")
     
@@ -168,22 +171,26 @@ async def test_training_data_preparation():
     
     try:
         X_user, X_item, y = recommender._prepare_features(train_df, user_features_df, item_features_df)
-        
+
         logger.info(f"User features shape: {X_user.shape}")
         logger.info(f"Item features shape: {X_item.shape}")
         logger.info(f"Labels shape: {y.shape}")
         logger.info(f"User features sample: {X_user[0][:5]}")
         logger.info(f"Item features sample: {X_item[0][:5]}")
         logger.info(f"Labels sample: {y[:5]}")
-        
+
+        assert X_user.shape[0] == train_df.shape[0]
+        assert X_item.shape[0] == train_df.shape[0]
+        assert y.shape[0] == train_df.shape[0]
+        assert X_user.ndim == 2 and X_item.ndim == 2
+
         logger.info("✅ Training data preparation test completed successfully!")
-        return True
-        
+
     except Exception as e:
         logger.error(f"❌ Training data preparation test failed: {e}")
-        return False
+        pytest.fail(f"Training data preparation test failed: {e}")
 
-async def main():
+def main():
     """Run all tests."""
     logger.info("🚀 Starting Two-Tower Neural Network tests...")
     
@@ -196,7 +203,7 @@ async def main():
     results = []
     for test in tests:
         try:
-            result = await test()
+            result = test()
             results.append(result)
         except Exception as e:
             logger.error(f"❌ Test failed: {e}")
@@ -215,4 +222,4 @@ async def main():
     return passed == total
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

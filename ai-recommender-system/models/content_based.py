@@ -107,18 +107,29 @@ class ContentBasedRecommender(BaseRecommender):
                 
                 results = []
                 for i, pos in enumerate(similar_positions[:request.limit]):
-                    position_id = pos["metadata"]["position_id"]
-                    
+                    metadata = pos.get("metadata", {})
+                    position_id = metadata.get("position_id")
+                    if position_id is None:
+                        continue
+
+                    enriched_meta = {
+                        "title": metadata.get("title", ""),
+                        "startup_id": metadata.get("startup_id"),
+                        "startup_name": metadata.get("startup_name"),
+                        "location": metadata.get("location"),
+                        "remote_ok": metadata.get("remote_ok"),
+                        "salary_range": metadata.get("salary_range"),
+                        "equity": metadata.get("equity"),
+                        "skills_match": metadata.get("skills"),
+                        "similarity_score": pos.get("similarity_score")
+                    }
                     results.append(RecommendationResult(
                         item_id=position_id,
                         item_type="position",
                         score=pos["similarity_score"],
                         rank=i + 1,
                         match_reasons=["Skills and preferences match"],
-                        metadata={
-                            "title": pos["metadata"].get("title", ""),
-                            "similarity_score": pos["similarity_score"]
-                        }
+                        metadata={k: v for k, v in enriched_meta.items() if v is not None}
                     ))
                 
                 if results:  # Return vector store results if available
@@ -144,23 +155,33 @@ class ContentBasedRecommender(BaseRecommender):
             # Get founder's startup information
             startup_info = await self._get_founder_startup_info(request.user_id)
             if not startup_info:
-                return []
-            
+                logger.warning(f"No startup info found for founder {request.user_id}, using fallback")
+                return await self._get_recent_developers_from_database(request)
+
             # Create query based on startup requirements
             query_skills = startup_info.get("required_skills", [])
-            query_text = f"Skills needed: {', '.join(query_skills)} for {startup_info.get('industry', '')} startup"
-            
-            # Search for developers with similar skills
-            similar_users = vector_store.search_similar_users(
-                query_text=query_text,
-                n_results=request.limit * 2,
-                filters={**request.filters, "user_type": "developer"} if request.filters else {"user_type": "developer"}
-            )
-            
+            industry = startup_info.get("industry", "")
+            query_text = f"Skills needed: {', '.join(query_skills)} for {industry} startup".strip()
+
+            # Attempt vector store search first
+            similar_users = []
+            try:
+                similar_users = vector_store.search_similar_users(
+                    query_text=query_text,
+                    n_results=request.limit * 2,
+                    filters={**request.filters, "user_type": "developer"} if request.filters else {"user_type": "developer"}
+                )
+            except Exception as vector_error:
+                logger.warning(f"Vector store failed for founder {request.user_id}, falling back to database: {vector_error}")
+
             results = []
             for i, user in enumerate(similar_users[:request.limit]):
-                user_id = user["metadata"]["user_id"]
-                
+                metadata = user.get("metadata", {})
+                user_id = metadata.get("user_id")
+                if user_id is None:
+                    continue
+
+                profile = metadata.get("profile", {})
                 results.append(RecommendationResult(
                     item_id=user_id,
                     item_type="user",
@@ -169,16 +190,23 @@ class ContentBasedRecommender(BaseRecommender):
                     match_reasons=["Skills match startup requirements"],
                     metadata={
                         "user_type": "developer",
-                        "skills": user["metadata"].get("skills", []),
-                        "similarity_score": user["similarity_score"]
+                        "name": profile.get("name"),
+                        "location": profile.get("location"),
+                        "skills": metadata.get("skills", []),
+                        "experience_years": profile.get("experience_years"),
+                        "similarity_score": user.get("similarity_score")
                     }
                 ))
-            
-            return results
-            
+
+            if results:
+                return results
+
+            logger.info(f"No vector-store matches for founder {request.user_id}, using recent developers fallback")
+            return await self._get_recent_developers_from_database(request)
+
         except Exception as e:
             logger.error(f"Error recommending developers for founder: {e}")
-            return []
+            return await self._get_recent_developers_from_database(request)
     
     async def _recommend_startups_for_investor(
         self,
@@ -190,27 +218,34 @@ class ContentBasedRecommender(BaseRecommender):
             profile_data = user_profile.get("profile_data", {})
             interested_industries = profile_data.get("interested_industries", [])
             investment_stages = profile_data.get("investment_stages", [])
-            
+
             # Create query based on investor preferences
             query_parts = []
             if interested_industries:
                 query_parts.append(f"Industries: {', '.join(interested_industries)}")
             if investment_stages:
                 query_parts.append(f"Stages: {', '.join(investment_stages)}")
-            
+
             query_text = " ".join(query_parts) if query_parts else "innovative startups"
-            
-            # Search for similar startups
-            similar_startups = vector_store.search_similar_startups(
-                query_text=query_text,
-                n_results=request.limit * 2,
-                filters=request.filters
-            )
-            
+
+            # Attempt vector store search first
+            similar_startups = []
+            try:
+                similar_startups = vector_store.search_similar_startups(
+                    query_text=query_text,
+                    n_results=request.limit * 2,
+                    filters=request.filters
+                )
+            except Exception as vector_error:
+                logger.warning(f"Vector store failed for investor {request.user_id}, falling back: {vector_error}")
+
             results = []
             for i, startup in enumerate(similar_startups[:request.limit]):
-                startup_id = startup["metadata"]["startup_id"]
-                
+                metadata = startup.get("metadata", {})
+                startup_id = metadata.get("startup_id")
+                if startup_id is None:
+                    continue
+
                 results.append(RecommendationResult(
                     item_id=startup_id,
                     item_type="startup",
@@ -218,17 +253,25 @@ class ContentBasedRecommender(BaseRecommender):
                     rank=i + 1,
                     match_reasons=["Industry and stage alignment"],
                     metadata={
-                        "industry": startup["metadata"].get("industry", []),
-                        "stage": startup["metadata"].get("stage", ""),
-                        "similarity_score": startup["similarity_score"]
+                        "name": metadata.get("name"),
+                        "industry": metadata.get("industry", []),
+                        "stage": metadata.get("stage", ""),
+                        "location": metadata.get("location"),
+                        "team_size": metadata.get("team_size"),
+                        "funding_amount": metadata.get("funding_amount"),
+                        "similarity_score": startup.get("similarity_score")
                     }
                 ))
-            
-            return results
-            
+
+            if results:
+                return results
+
+            logger.info(f"No vector-store matches for investor {request.user_id}, using recent startups fallback")
+            return await self._get_recent_startups_from_database(request)
+
         except Exception as e:
             logger.error(f"Error recommending startups for investor: {e}")
-            return []
+            return await self._get_recent_startups_from_database(request)
     
     async def _get_founder_startup_info(self, founder_id: int) -> Optional[Dict[str, Any]]:
         """Get startup information for a founder."""
@@ -284,17 +327,27 @@ class ContentBasedRecommender(BaseRecommender):
                     # Simple scoring based on skill matches
                     score = self._calculate_position_score(position, skills)
                     
+                    startup = position.startup
+                    requirements = position.requirements or {}
+                    fallback_meta = {
+                        "title": position.title,
+                        "startup_id": position.startup_id,
+                        "startup_name": startup.name if startup else None,
+                        "location": requirements.get("location"),
+                        "remote_ok": requirements.get("remote_ok"),
+                        "salary_range": requirements.get("salary_range"),
+                        "equity": requirements.get("equity"),
+                        "skills": requirements.get("skills", []),
+                        "fallback_method": "database"
+                    }
+
                     results.append(RecommendationResult(
                         item_id=position.position_id,
                         item_type="position",
                         score=score,
                         rank=i + 1,
                         match_reasons=["Database fallback"],
-                        metadata={
-                            "title": position.title,
-                            "startup_id": position.startup_id,
-                            "fallback_method": "database"
-                        }
+                        metadata={k: v for k, v in fallback_meta.items() if v not in (None, [])}
                     ))
                 
                 return results
@@ -311,17 +364,27 @@ class ContentBasedRecommender(BaseRecommender):
                 
                 results = []
                 for i, position in enumerate(positions):
+                    requirements = position.requirements or {}
+                    startup = position.startup
+                    meta = {
+                        "title": position.title,
+                        "startup_id": position.startup_id,
+                        "startup_name": startup.name if startup else None,
+                        "location": requirements.get("location"),
+                        "remote_ok": requirements.get("remote_ok"),
+                        "salary_range": requirements.get("salary_range"),
+                        "equity": requirements.get("equity"),
+                        "skills": requirements.get("skills", []),
+                        "method": "recent_positions"
+                    }
+
                     results.append(RecommendationResult(
                         item_id=position.position_id,
                         item_type="position",
                         score=0.5,  # Default score
                         rank=i + 1,
                         match_reasons=["Recent position"],
-                        metadata={
-                            "title": position.title,
-                            "startup_id": position.startup_id,
-                            "method": "recent_positions"
-                        }
+                        metadata={k: v for k, v in meta.items() if v not in (None, [])}
                     ))
                 
                 return results
@@ -342,17 +405,22 @@ class ContentBasedRecommender(BaseRecommender):
                     profile_data = user.profile_data or {}
                     skills = profile_data.get("skills", [])
                     
+                    meta = {
+                        "user_type": "developer",
+                        "name": profile_data.get("name"),
+                        "location": profile_data.get("location"),
+                        "skills": skills,
+                        "experience_years": profile_data.get("experience_years"),
+                        "method": "recent_developers"
+                    }
+
                     results.append(RecommendationResult(
                         item_id=user.user_id,
                         item_type="user",
                         score=0.5,  # Default score
                         rank=i + 1,
                         match_reasons=["Recent developer"],
-                        metadata={
-                            "user_type": "developer",
-                            "skills": skills,
-                            "method": "recent_developers"
-                        }
+                        metadata={k: v for k, v in meta.items() if v not in (None, [])}
                     ))
                 
                 return results
@@ -374,19 +442,23 @@ class ContentBasedRecommender(BaseRecommender):
                     industry = startup_metadata.get("industry", [])
                     stage = startup_metadata.get("stage", "")
                     
+                    meta = {
+                        "name": startup.name,
+                        "industry": industry,
+                        "stage": stage,
+                        "location": startup_metadata.get("location"),
+                        "team_size": startup_metadata.get("team_size"),
+                        "funding_amount": startup_metadata.get("funding_amount"),
+                        "method": "recent_startups"
+                    }
+
                     results.append(RecommendationResult(
                         item_id=startup.startup_id,
                         item_type="startup",
                         score=0.5,  # Default score
                         rank=i + 1,
                         match_reasons=["Recent startup"],
-                        metadata={
-                            "name": startup.name,
-                            "founder_id": startup.founder_id,
-                            "industry": industry,
-                            "stage": stage,
-                            "method": "recent_startups"
-                        }
+                        metadata={k: v for k, v in meta.items() if v not in (None, [])}
                     ))
                 
                 return results
